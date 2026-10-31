@@ -1,0 +1,106 @@
+﻿<phone:PhoneApplicationPage
+    x:Class="MetroPinry.Views.PinDetailPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <!-- Системный трей с поддержкой прогресс-бара -->
+    <shell:SystemTray.ProgressIndicator>
+        <shell:ProgressIndicator x:Name="AppProgressIndicator" 
+                                 IsVisible="False" 
+                                 IsIndeterminate="True" 
+                                 Text="MetroPinry"/>
+    </shell:SystemTray.ProgressIndicator>
+
+    <Grid x:Name="LayoutRoot" Background="{StaticResource PhoneBackgroundBrush}">
+        <!-- Горизонтальная прокрутка заблокирована -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="18,12,18,30">
+
+                <!-- Контейнер ограничен по ширине экрана WP8.1 (480 - отступы 36 = 444) -->
+                <Border Background="#FF000000" 
+                        Margin="0,0,0,16" 
+                        HorizontalAlignment="Center"
+                        MaxWidth="444">
+                    <Image x:Name="FullImage"
+                           Stretch="Uniform"
+                           MaxWidth="444"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+                </Border>
+
+                <!-- Описание пина -->
+                <TextBlock x:Name="PinDescription"
+                           Text="Описание"
+                           Style="{StaticResource PhoneTextTitle2Style}"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,16"/>
+
+                <Rectangle Height="1" Fill="#33FFFFFF" Margin="0,0,0,16"/>
+
+                <!-- Блок метаданных -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Автор -->
+                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                               Text="автор" 
+                               Style="{StaticResource PhoneTextSubtleStyle}" 
+                               Margin="0,0,12,8"/>
+                    <TextBlock x:Name="TxtAuthor" 
+                               Grid.Row="0" Grid.Column="1" 
+                               Text="—" 
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8"/>
+
+                    <!-- ID пина -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" 
+                               Text="pin id" 
+                               Style="{StaticResource PhoneTextSubtleStyle}" 
+                               Margin="0,0,12,8"/>
+                    <TextBlock x:Name="TxtPinId" 
+                               Grid.Row="1" Grid.Column="1" 
+                               Text="—" 
+                               Margin="0,0,0,8"/>
+
+                    <!-- Ссылка на источник / файл -->
+                    <TextBlock Grid.Row="2" Grid.Column="0" 
+                               Text="источник" 
+                               Style="{StaticResource PhoneTextSubtleStyle}" 
+                               Margin="0,0,12,8"/>
+                    <TextBlock x:Name="TxtSourceUrl" 
+                               Grid.Row="2" Grid.Column="1" 
+                               Text="—" 
+                               TextWrapping="Wrap"
+                               Opacity="0.8"
+                               Margin="0,0,0,8"/>
+                </Grid>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+
+    <!-- Нижняя панель действий со скачиванием оригинала -->
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" Mode="Default">
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/download.png" 
+                                             Text="download" 
+                                             Click="OnDownloadAppBarClick"/>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
+
+</phone:PhoneApplicationPage>

@@ -1,0 +1,64 @@
+﻿<phone:PhoneApplicationPage
+    x:Class="MetroPinry.Views.LoginPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <Grid x:Name="LayoutRoot" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="12,17,0,24">
+            <TextBlock Text="METROPINRY" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="PageTitle" Text="sign in" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="12,0,12,24">
+                <TextBlock Text="server address" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                <TextBox x:Name="ServerUrlBox" Text="http://karelin-art.ddns.net" InputScope="Url"/>
+
+                <!-- Блок: Логин и пароль (Основной) -->
+                <StackPanel x:Name="CredentialsPanel">
+                    <TextBlock Text="username" Margin="0,10,0,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                    <TextBox x:Name="UsernameBox" InputScope="PersonalFullName"/>
+
+                    <TextBlock Text="password" Margin="0,10,0,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                    <PasswordBox x:Name="PasswordBox"/>
+                </StackPanel>
+
+                <!-- Блок: Токен (Альтернативный) -->
+                <StackPanel x:Name="TokenPanel" Visibility="Collapsed">
+                    <TextBlock Text="api token" Margin="0,10,0,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                    <TextBox x:Name="TokenBox"/>
+                </StackPanel>
+
+                <ProgressBar x:Name="LoginProgressBar" 
+                             IsIndeterminate="True" 
+                             Visibility="Collapsed" 
+                             Margin="0,16,0,16"/>
+
+                <Button x:Name="SignInButton" 
+                        Content="sign in" 
+                        Margin="0,12,0,8" 
+                        Click="OnSignInClick"/>
+
+                <!-- Переключатель режима авторизации -->
+                <HyperlinkButton x:Name="SwitchAuthModeButton"
+                                 Content="or use api token instead" 
+                                 HorizontalAlignment="Center" 
+                                 Margin="0,4,0,0" 
+                                 Click="OnSwitchAuthModeClick"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+
+</phone:PhoneApplicationPage>

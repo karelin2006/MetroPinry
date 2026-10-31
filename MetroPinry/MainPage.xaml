@@ -7,116 +7,126 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    d:DataContext="{d:DesignData SampleData/MainViewModelSampleData.xaml}"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
-    SupportedOrientations="Portrait"  Orientation="Portrait"
+    SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="False">
 
-    <!--LayoutRoot is the root grid where all page content is placed-->
     <Grid x:Name="LayoutRoot" Background="Transparent">
-
-        <!-- LOCALIZATION NOTE:
-            To localize the displayed strings copy their values to appropriately named
-            keys in the app's neutral language resource file (AppResources.resx) then
-            replace the hard-coded text value between the attributes' quotation marks
-            with the binding clause whose path points to that string name.
-
-            For example:
-
-                Text="{Binding Path=LocalizedResources.ApplicationTitle, Source={StaticResource LocalizedStrings}}"
-
-            This binding points to the template's string resource named "ApplicationTitle".
-
-            Adding supported languages in the Project Properties tab will create a
-            new resx file per language that can carry the translated values of your
-            UI strings. The binding in these examples will cause the value of the
-            attributes to be drawn from the .resx file that matches the
-            CurrentUICulture of the app at run time.
-         -->
-
-         <!--Panorama control-->
-        <phone:Panorama Title="my application">
+        <!-- Заголовок панорамы в нижнем регистре (канон Metro) -->
+        <phone:Panorama Title="metropinry">
             <phone:Panorama.Background>
-                <ImageBrush ImageSource="/MetroPinry;component/Assets/PanoramaBackground.png"/>
+                <ImageBrush ImageSource="/MetroPinry;component/Assets/PanoramaDarkGrain.png" 
+                            Opacity="0.4" 
+                            Stretch="UniformToFill"/>
             </phone:Panorama.Background>
 
-            <!--Panorama item one-->
-            <phone:PanoramaItem Header="first item">
-                <!--Single line list with text wrapping-->
-                <phone:LongListSelector Margin="0,0,-22,0" ItemsSource="{Binding Items}">
+            <!-- СЕКЦИЯ 1: Лента всех пинов -->
+            <phone:PanoramaItem Header="feed" Width="380">
+                <phone:LongListSelector x:Name="FeedList"
+                                        Margin="12,0,0,0"
+                                        ItemsSource="{Binding RecentPins}"
+                                        SelectionChanged="OnPinSelectionChanged">
                     <phone:LongListSelector.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="0,-6,0,12">
-                                <TextBlock Text="{Binding LineOne}" TextWrapping="Wrap" Style="{StaticResource PhoneTextExtraLargeStyle}" FontSize="{StaticResource PhoneFontSizeExtraLarge}"/>
-                            </StackPanel>
+                            <Border Margin="0,0,16,14" Background="#1AFFFFFF">
+                                <StackPanel>
+                                    <!-- Квадратный контейнер 350x350 -->
+                                    <Grid Width="350" Height="350" Background="#11FFFFFF">
+                                        <Image Stretch="UniformToFill">
+                                            <Image.Source>
+                                                <BitmapImage UriSource="{Binding DisplayThumbnailUrl}" CreateOptions="BackgroundCreation"/>
+                                            </Image.Source>
+                                        </Image>
+                                    </Grid>
+
+                                    <TextBlock Text="{Binding Description}" 
+                                               Margin="10,8" 
+                                               MaxHeight="42"
+                                               TextWrapping="Wrap"
+                                               TextTrimming="WordEllipsis" 
+                                               Style="{StaticResource PhoneTextNormalStyle}"/>
+                                </StackPanel>
+                            </Border>
                         </DataTemplate>
                     </phone:LongListSelector.ItemTemplate>
                 </phone:LongListSelector>
             </phone:PanoramaItem>
 
-            <!--Panorama item two-->
-            <phone:PanoramaItem>
-                <!--Double line list with image placeholder and text wrapping using a floating header that scrolls with the content-->
-                <phone:LongListSelector Margin="0,-38,-22,2" ItemsSource="{Binding Items}">
-                    <phone:LongListSelector.ListHeaderTemplate>
+            <!-- СЕКЦИЯ 2: Доски / Коллекции (сетка плиток) -->
+            <phone:PanoramaItem Header="boards" Width="420">
+                <phone:LongListSelector Margin="12,0,0,0"
+                                        ItemsSource="{Binding Boards}"
+                                        LayoutMode="Grid" 
+                                        GridCellSize="180,180"
+                                        SelectionChanged="OnBoardSelectionChanged">
+                    <phone:LongListSelector.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="12,0,0,38">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Text="second item"
-                                           Style="{StaticResource PanoramaItemHeaderTextStyle}"
-                                           Grid.Row="0"/>
+                            <Grid Width="170" Height="170" 
+                                  Margin="0,0,10,10" 
+                                  Background="{StaticResource PhoneAccentBrush}">
+
+                                <!-- Обложка доски через нативный BitmapImage -->
+                                <Image Stretch="UniformToFill">
+                                    <Image.Source>
+                                        <BitmapImage UriSource="{Binding CoverImageUrl}" CreateOptions="BackgroundCreation"/>
+                                    </Image.Source>
+                                </Image>
+
+                                <!-- Затемнение снизу для читаемости текста в стиле Metro -->
+                                <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" 
+                                                   FontWeight="Bold" 
+                                                   FontSize="20" 
+                                                   Foreground="White"
+                                                   TextTrimming="WordEllipsis"/>
+                                        <TextBlock Text="{Binding PinsCount, StringFormat='{}{0} pins'}" 
+                                                   Opacity="0.85" 
+                                                   FontSize="14"
+                                                   Foreground="White"
+                                                   Style="{StaticResource PhoneTextSubtleStyle}"/>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
                         </DataTemplate>
-                    </phone:LongListSelector.ListHeaderTemplate>
-                    <phone:LongListSelector.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="12,2,0,4" Height="105" Width="432">
-                                <!--Replace rectangle with image-->
-                                <Border BorderThickness="1" Width="99" Height="99" BorderBrush="#FFFFC700" Background="#FFFFC700"/>
-                                <StackPanel Width="311" Margin="8,-7,0,0">
-                                    <TextBlock Text="{Binding LineOne}" TextWrapping="Wrap" Margin="10,0" Style="{StaticResource PhoneTextExtraLargeStyle}" FontSize="{StaticResource PhoneFontSizeLarge}" />
-                                    <TextBlock Text="{Binding LineTwo}" TextWrapping="Wrap" Margin="10,-2,10,0" Style="{StaticResource PhoneTextSubtleStyle}" />
-                                </StackPanel>
-                            </StackPanel>
-                        </DataTemplate>
                     </phone:LongListSelector.ItemTemplate>
                 </phone:LongListSelector>
             </phone:PanoramaItem>
 
-            <!--Panorama item three-->
-            <phone:PanoramaItem Header="third item" Orientation="Horizontal">
-                <!--Double wide Panorama with large image placeholders-->
-                <Grid>
-                    <StackPanel Margin="0,4,16,0" Orientation="Vertical" VerticalAlignment="Top">
-                        <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
-                            <Border Background="#FFFFC700" Height="173" Width="173" Margin="12,0,0,0"/>
-                            <Border Background="#FFFFC700" Height="173" Width="173" Margin="12,0,0,0"/>
-                            <Border Background="#FFFFC700" Height="173" Width="173" Margin="12,0,0,0"/>
-                            <Border Background="#FFFFC700" Height="173" Width="173" Margin="12,0,0,0"/>
-                        </StackPanel>
-                        <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" Margin="0,12,0,0">
-                            <Border Background="#FFFFC700" Height="173" Width="173" Margin="12,0,0,0"/>
-                            <Border Background="#FFFFC700" Height="173" Width="173" Margin="12,0,0,0"/>
-                            <Border Background="#FFFFC700" Height="173" Width="173" Margin="12,0,0,0"/>
-                            <Border Background="#FFFFC700" Height="173" Width="173" Margin="12,0,0,0"/>
+            <!-- СЕКЦИЯ 3: Профиль и действия -->
+            <phone:PanoramaItem Header="me">
+                <StackPanel Margin="12,0,24,0">
+                    <!-- Аватар Gravatar -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,28">
+                        <Border Width="72" Height="72" Background="{StaticResource PhoneAccentBrush}">
+                            <Image Source="{Binding CurrentUser.AvatarUrl}" Stretch="UniformToFill"/>
+                        </Border>
+                        <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding CurrentUser.Username}" Style="{StaticResource PhoneTextTitle2Style}"/>
+                            <TextBlock Text="{Binding CurrentUser.Email}" Style="{StaticResource PhoneTextSubtleStyle}"/>
                         </StackPanel>
                     </StackPanel>
-                </Grid>
+
+                    <Button Content="my saved pins" Margin="-12,0,0,6" Click="OnMyPinsClick"/>
+                    <Button Content="create new board" Margin="-12,0,0,6" Click="OnCreateBoardClick"/>
+                    <Button Content="server settings" Margin="-12,0,0,6" Click="OnSettingsClick"/>
+                </StackPanel>
             </phone:PanoramaItem>
         </phone:Panorama>
-
-        <!--Uncomment to see an alignment grid to help ensure your controls are
-            aligned on common boundaries.  The image has a top margin of -32px to
-            account for the System Tray. Set this to 0 (or remove the margin altogether)
-            if the System Tray is hidden.
-
-            Before shipping remove this XAML and the image itself.-->
-        <!--<Image Source="/Assets/AlignmentGrid.png" VerticalAlignment="Top" Height="800" Width="480" Margin="0" Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False" />-->
-
     </Grid>
+
+    <!-- Панель действий -->
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" Mode="Minimized">
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/add.png" 
+                                             Text="add pin" 
+                                             Click="OnAddPinAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" 
+                                             Text="refresh" 
+                                             Click="OnRefreshAppBarClick"/>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
+
 </phone:PhoneApplicationPage>
