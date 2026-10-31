@@ -52,6 +52,15 @@
                         <PasswordBox x:Name="PasswordBox" PasswordChanged="PasswordBox_PasswordChanged"/>
                         <TextBlock x:Name="PasswordHint" Text="password" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
                     </Grid>
+
+                    <!-- Повтор пароля (только для регистрации) -->
+                    <StackPanel x:Name="PasswordRepeatPanel" Visibility="Collapsed">
+                        <Grid Margin="-12,0,-12,12">
+                            <PasswordBox x:Name="PasswordRepeatBox" PasswordChanged="PasswordRepeatBox_PasswordChanged"/>
+                            <TextBlock x:Name="PasswordRepeatHint" Text="repeat password" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                        </Grid>
+                    </StackPanel>
+
                 </StackPanel>
 
                 <!-- Токен (нижний отступ уменьшен с 24 до 12) -->

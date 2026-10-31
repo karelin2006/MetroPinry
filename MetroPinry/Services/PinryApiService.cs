@@ -216,7 +216,7 @@ namespace MetroPinry.Services
             }
         }
 
-        public async Task<bool> RegisterWithCredentialsAsync(string serverUrl, string username, string email, string password)
+        public async Task<bool> RegisterWithCredentialsAsync(string serverUrl, string username, string email, string password, string passwordRepeat)
         {
             string cleanUrl = NormalizeBaseUrl(serverUrl);
 
@@ -226,8 +226,9 @@ namespace MetroPinry.Services
             string safeUser = username.Replace("\\", "\\\\").Replace("\"", "\\\"");
             string safeEmail = email.Replace("\\", "\\\\").Replace("\"", "\\\"");
             string safePass = password.Replace("\\", "\\\\").Replace("\"", "\\\"");
+            string safePassRepeat = passwordRepeat.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
-            string jsonPayload = string.Format("{{\"username\":\"{0}\",\"email\":\"{1}\",\"password\":\"{2}\"}}", safeUser, safeEmail, safePass);
+            string jsonPayload = string.Format("{{\"username\":\"{0}\",\"email\":\"{1}\",\"password\":\"{2}\",\"password_repeat\":\"{3}\"}}", safeUser, safeEmail, safePass, safePassRepeat);
             byte[] payloadBytes = Encoding.UTF8.GetBytes(jsonPayload);
 
             var request = (HttpWebRequest)WebRequest.Create(new Uri(registerUrl));
