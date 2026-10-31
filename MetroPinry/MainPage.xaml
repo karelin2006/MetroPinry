@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -15,7 +16,7 @@
 
     <Grid x:Name="LayoutRoot" Background="Transparent">
         <!-- Заголовок панорамы в нижнем регистре (канон Metro) -->
-        <phone:Panorama Title="metropinry">
+        <phone:Panorama x:Name="MainPanorama" Title="metropinry" SelectionChanged="MainPanorama_SelectionChanged">
             <phone:Panorama.Background>
                 <ImageBrush ImageSource="/MetroPinry;component/Assets/PanoramaDarkGrain.png" 
                             Opacity="0.4" 
@@ -31,15 +32,21 @@
                     <phone:LongListSelector.ItemTemplate>
                         <DataTemplate>
                             <Border Margin="0,0,16,14" Background="#1AFFFFFF">
+                                <toolkit:ContextMenuService.ContextMenu>
+                                    <toolkit:ContextMenu>
+                                        <toolkit:MenuItem Header="edit" Click="OnEditPinContextClick"/>
+                                        <toolkit:MenuItem Header="delete" Click="OnDeletePinContextClick"/>
+                                    </toolkit:ContextMenu>
+                                </toolkit:ContextMenuService.ContextMenu>
                                 <StackPanel>
-                                    <!-- Квадратный контейнер 350x350 -->
-                                    <Grid Width="350" Height="350" Background="#11FFFFFF">
-                                        <Image Stretch="UniformToFill">
-                                            <Image.Source>
-                                                <BitmapImage UriSource="{Binding DisplayThumbnailUrl}" CreateOptions="BackgroundCreation"/>
-                                            </Image.Source>
-                                        </Image>
-                                    </Grid>
+                                    <Image Width="350" 
+                                           Height="350" 
+                                           HorizontalAlignment="Center" 
+                                           Stretch="UniformToFill">
+                                        <Image.Source>
+                                            <BitmapImage UriSource="{Binding DisplayStandardUrl}" DecodePixelWidth="400"/>
+                                        </Image.Source>
+                                    </Image>
 
                                     <TextBlock Text="{Binding Description}" 
                                                Margin="10,8" 
@@ -54,7 +61,7 @@
                 </phone:LongListSelector>
             </phone:PanoramaItem>
 
-            <!-- СЕКЦИЯ 2: Доски / Коллекции (сетка плиток) -->
+            <!-- СЕКЦИЯ 2: Доски / Коллекции -->
             <phone:PanoramaItem Header="boards" Width="420">
                 <phone:LongListSelector Margin="12,0,0,0"
                                         ItemsSource="{Binding Boards}"
@@ -66,15 +73,19 @@
                             <Grid Width="170" Height="170" 
                                   Margin="0,0,10,10" 
                                   Background="{StaticResource PhoneAccentBrush}">
+                                <toolkit:ContextMenuService.ContextMenu>
+                                    <toolkit:ContextMenu>
+                                        <toolkit:MenuItem Header="edit" Click="OnEditBoardContextClick"/>
+                                        <toolkit:MenuItem Header="delete" Click="OnDeleteBoardContextClick"/>
+                                    </toolkit:ContextMenu>
+                                </toolkit:ContextMenuService.ContextMenu>
 
-                                <!-- Обложка доски через нативный BitmapImage -->
                                 <Image Stretch="UniformToFill">
                                     <Image.Source>
                                         <BitmapImage UriSource="{Binding CoverImageUrl}" CreateOptions="BackgroundCreation"/>
                                     </Image.Source>
                                 </Image>
 
-                                <!-- Затемнение снизу для читаемости текста в стиле Metro -->
                                 <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
                                     <StackPanel>
                                         <TextBlock Text="{Binding Name}" 
@@ -95,37 +106,187 @@
                 </phone:LongListSelector>
             </phone:PanoramaItem>
 
-            <!-- СЕКЦИЯ 3: Профиль и действия -->
-            <phone:PanoramaItem Header="me">
-                <StackPanel Margin="12,0,24,0">
-                    <!-- Аватар Gravatar -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,28">
-                        <Border Width="72" Height="72" Background="{StaticResource PhoneAccentBrush}">
-                            <Image Source="{Binding CurrentUser.AvatarUrl}" Stretch="UniformToFill"/>
-                        </Border>
-                        <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding CurrentUser.Username}" Style="{StaticResource PhoneTextTitle2Style}"/>
-                            <TextBlock Text="{Binding CurrentUser.Email}" Style="{StaticResource PhoneTextSubtleStyle}"/>
+            <!-- СЕКЦИЯ 3: Поиск (в чистом типографическом стиле Metro) -->
+            <phone:PanoramaItem Header="search" Width="380">
+                <Grid Margin="12,0,16,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Поле ввода в нативном плоском стиле -->
+                    <toolkit:PhoneTextBox x:Name="SearchBox"
+                              Grid.Row="0"
+                              Margin="-12,-8,-12,12"
+                              Hint="type to search..."
+                              InputScope="Search"
+                              TextChanged="OnSearchTextChanged"/>
+
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="0,4,0,24">
+
+                            <!-- Пустое состояние в нижнем регистре (PhoneTextSubtleStyle) -->
+                            <TextBlock x:Name="SearchEmptyState"
+                           Text="enter keywords or tags"
+                           Style="{StaticResource PhoneTextSubtleStyle}"
+                           Margin="0,16,0,0"/>
+
+                            <!-- БЛОК НАЙДЕННЫХ ДОСОК -->
+                            <StackPanel x:Name="FoundBoardsHeaderPanel" Visibility="Collapsed" Margin="0,0,0,20">
+                                <TextBlock Text="boards" 
+                               Style="{StaticResource PhoneTextGroupHeaderStyle}" 
+                               Margin="0,0,0,8"/>
+
+                                <ItemsControl x:Name="FoundBoardsList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <!-- Нативный список Metro: акцент на типографике без фоновых рамок -->
+                                            <StackPanel Margin="0,0,0,14" Tap="OnFoundBoardTap">
+                                                <TextBlock Text="{Binding Name}" 
+                                               FontSize="24" 
+                                               FontWeight="Normal" 
+                                               Foreground="{StaticResource PhoneForegroundBrush}"
+                                               TextTrimming="WordEllipsis"/>
+                                                <TextBlock Text="{Binding PinsCount, StringFormat='{}{0} pins'}" 
+                                               Style="{StaticResource PhoneTextSubtleStyle}" 
+                                               FontSize="14"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- БЛОК НАЙДЕННЫХ ПИНОВ -->
+                            <StackPanel x:Name="FoundPinsHeaderPanel" Visibility="Collapsed">
+                                <TextBlock Text="pins" 
+                               Style="{StaticResource PhoneTextGroupHeaderStyle}" 
+                               Margin="0,0,0,12"/>
+
+                                <ItemsControl x:Name="FoundPinsList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <!-- Плитка пина повторяет ленту Feed: картинка + лаконичная подпись -->
+                                            <StackPanel Margin="0,0,0,20" Tap="OnFoundPinTap">
+                                                <Rectangle Width="340" Height="220" HorizontalAlignment="Left">
+                                                    <Rectangle.Fill>
+                                                        <ImageBrush Stretch="UniformToFill">
+                                                            <ImageBrush.ImageSource>
+                                                                <BitmapImage UriSource="{Binding DisplayThumbnailUrl}" CreateOptions="BackgroundCreation"/>
+                                                            </ImageBrush.ImageSource>
+                                                        </ImageBrush>
+                                                    </Rectangle.Fill>
+                                                </Rectangle>
+                                                <TextBlock Text="{Binding Description}" 
+                                               Style="{StaticResource PhoneTextNormalStyle}"
+                                               Margin="0,8,0,0"
+                                               MaxHeight="40"
+                                               TextWrapping="Wrap"
+                                               TextTrimming="WordEllipsis"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
                         </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </phone:PanoramaItem>
+
+            <!-- СЕКЦИЯ 4: Профиль пользователя и его пины -->
+            <phone:PanoramaItem Header="me" Width="440">
+                <Grid Margin="12,0,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,16,10">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Border Width="64" Height="64" Background="{StaticResource PhoneAccentBrush}">
+                                <Image Source="{Binding CurrentUser.AvatarUrl}" Stretch="UniformToFill"/>
+                            </Border>
+                            <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CurrentUser.Username}" Style="{StaticResource PhoneTextTitle2Style}"/>
+                                <TextBlock Text="{Binding CurrentUser.Email}" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Border Background="#1AFFFFFF" 
+                                Padding="10,8" 
+                                Margin="0,0,0,8"
+                                Tap="OnTokenTap">
+                            <StackPanel>
+                                <TextBlock Text="api token (tap to copy)" 
+                                           Style="{StaticResource PhoneTextSubtleStyle}" 
+                                           FontSize="11"/>
+                                <TextBlock Text="{Binding CurrentUser.Token}" 
+                                           FontFamily="Courier New"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.85"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="my pins" 
+                                   Style="{StaticResource PhoneTextGroupHeaderStyle}" 
+                                   Margin="0,4,0,2"/>
                     </StackPanel>
 
-                    <Button Content="my saved pins" Margin="-12,0,0,6" Click="OnMyPinsClick"/>
-                    <Button Content="create new board" Margin="-12,0,0,6" Click="OnCreateBoardClick"/>
-                    <Button Content="server settings" Margin="-12,0,0,6" Click="OnSettingsClick"/>
-                </StackPanel>
+                    <phone:LongListSelector Grid.Row="1"
+                                            ItemsSource="{Binding UserPins}"
+                                            LayoutMode="Grid"
+                                            IsGroupingEnabled="False"
+                                            GridCellSize="195,195"
+                                            SelectionChanged="OnPinSelectionChanged">
+                        <phone:LongListSelector.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Width="185" Height="185" 
+                                      Margin="0,0,10,10" 
+                                      Background="#1AFFFFFF">
+                                    <toolkit:ContextMenuService.ContextMenu>
+                                        <toolkit:ContextMenu>
+                                            <toolkit:MenuItem Header="edit" Click="OnEditPinContextClick"/>
+                                            <toolkit:MenuItem Header="delete" Click="OnDeletePinContextClick"/>
+                                        </toolkit:ContextMenu>
+                                    </toolkit:ContextMenuService.ContextMenu>
+
+                                    <Image Stretch="UniformToFill">
+                                        <Image.Source>
+                                            <BitmapImage UriSource="{Binding DisplayThumbnailUrl}" CreateOptions="BackgroundCreation"/>
+                                        </Image.Source>
+                                    </Image>
+
+                                    <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="6,4">
+                                        <TextBlock Text="{Binding Description}" 
+                                                   FontSize="12"
+                                                   Foreground="White"
+                                                   MaxHeight="32"
+                                                   TextWrapping="Wrap"
+                                                   TextTrimming="WordEllipsis"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </phone:LongListSelector.ItemTemplate>
+                    </phone:LongListSelector>
+                </Grid>
             </phone:PanoramaItem>
         </phone:Panorama>
     </Grid>
 
     <!-- Панель действий -->
     <phone:PhoneApplicationPage.ApplicationBar>
-        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" Mode="Minimized">
-            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/add.png" 
-                                             Text="add pin" 
-                                             Click="OnAddPinAppBarClick"/>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" Mode="Default">
+            <shell:ApplicationBarIconButton x:Name="AddAppBarButton"
+                                            IconUri="/Assets/AppBar/add.png" 
+                                            Text="add pin" 
+                                            Click="OnAddAppBarClick"/>
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" 
-                                             Text="refresh" 
-                                             Click="OnRefreshAppBarClick"/>
+                                            Text="refresh" 
+                                            Click="OnRefreshAppBarClick"/>
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="sign out" Click="OnSignOutMenuClick"/>
+            </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>
     </phone:PhoneApplicationPage.ApplicationBar>
 

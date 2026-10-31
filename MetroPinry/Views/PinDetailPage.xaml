@@ -10,7 +10,6 @@
     SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
 
-    <!-- Системный трей с поддержкой прогресс-бара -->
     <shell:SystemTray.ProgressIndicator>
         <shell:ProgressIndicator x:Name="AppProgressIndicator" 
                                  IsVisible="False" 
@@ -19,14 +18,12 @@
     </shell:SystemTray.ProgressIndicator>
 
     <Grid x:Name="LayoutRoot" Background="{StaticResource PhoneBackgroundBrush}">
-        <!-- Горизонтальная прокрутка заблокирована -->
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="18,12,18,30">
 
-                <!-- Контейнер ограничен по ширине экрана WP8.1 (480 - отступы 36 = 444) -->
                 <Border Background="#FF000000" 
                         Margin="0,0,0,16" 
-                        HorizontalAlignment="Center"
+                        HorizontalAlignment="Center" 
                         MaxWidth="444">
                     <Image x:Name="FullImage"
                            Stretch="Uniform"
@@ -35,7 +32,6 @@
                            VerticalAlignment="Center" />
                 </Border>
 
-                <!-- Описание пина -->
                 <TextBlock x:Name="PinDescription"
                            Text="Описание"
                            Style="{StaticResource PhoneTextTitle2Style}"
@@ -44,7 +40,6 @@
 
                 <Rectangle Height="1" Fill="#33FFFFFF" Margin="0,0,0,16"/>
 
-                <!-- Блок метаданных -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -54,52 +49,42 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <!-- Автор -->
-                    <TextBlock Grid.Row="0" Grid.Column="0" 
-                               Text="автор" 
-                               Style="{StaticResource PhoneTextSubtleStyle}" 
-                               Margin="0,0,12,8"/>
-                    <TextBlock x:Name="TxtAuthor" 
-                               Grid.Row="0" Grid.Column="1" 
-                               Text="—" 
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="автор" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,12,8"/>
+                    <TextBlock x:Name="TxtAuthor" Grid.Row="0" Grid.Column="1" Text="—" FontWeight="SemiBold" Margin="0,0,0,8"/>
 
-                    <!-- ID пина -->
-                    <TextBlock Grid.Row="1" Grid.Column="0" 
-                               Text="pin id" 
-                               Style="{StaticResource PhoneTextSubtleStyle}" 
-                               Margin="0,0,12,8"/>
-                    <TextBlock x:Name="TxtPinId" 
-                               Grid.Row="1" Grid.Column="1" 
-                               Text="—" 
-                               Margin="0,0,0,8"/>
+                    <!-- Теги -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="теги" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,12,8"/>
+                    <TextBlock x:Name="TxtTags" Grid.Row="1" Grid.Column="1" Text="—" Foreground="{StaticResource PhoneAccentBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-                    <!-- Ссылка на источник / файл -->
-                    <TextBlock Grid.Row="2" Grid.Column="0" 
-                               Text="источник" 
-                               Style="{StaticResource PhoneTextSubtleStyle}" 
-                               Margin="0,0,12,8"/>
-                    <TextBlock x:Name="TxtSourceUrl" 
-                               Grid.Row="2" Grid.Column="1" 
-                               Text="—" 
-                               TextWrapping="Wrap"
-                               Opacity="0.8"
-                               Margin="0,0,0,8"/>
+                    <!-- Доступ -->
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="доступ" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,12,8"/>
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock x:Name="TxtVisibilityIcon" FontFamily="Segoe UI Symbol" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtVisibility" Text="—" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Доски: только текст названий -->
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="доски" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,12,8"/>
+                    <TextBlock x:Name="TxtBoards" Grid.Row="3" Grid.Column="1" Text="—" TextWrapping="Wrap" Margin="0,0,0,8"/>
                 </Grid>
 
             </StackPanel>
         </ScrollViewer>
     </Grid>
 
-    <!-- Нижняя панель действий со скачиванием оригинала -->
     <phone:PhoneApplicationPage.ApplicationBar>
         <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" Mode="Default">
-            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/download.png" 
-                                             Text="download" 
-                                             Click="OnDownloadAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/edit.png" Text="edit" Click="OnEditAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/download.png" Text="download" Click="OnDownloadAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/delete.png" Text="delete" Click="OnDeleteAppBarClick"/>
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="прикрепить к доске..." Click="OnAttachBoardMenuClick"/>
+                <shell:ApplicationBarMenuItem Text="открепить от доски..." Click="OnDetachBoardMenuClick"/>
+            </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>
     </phone:PhoneApplicationPage.ApplicationBar>
 

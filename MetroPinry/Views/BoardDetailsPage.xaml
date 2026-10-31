@@ -4,11 +4,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
+
+    <shell:SystemTray.ProgressIndicator>
+        <shell:ProgressIndicator x:Name="BoardProgress" IsVisible="False" IsIndeterminate="True" Text="загрузка доски..."/>
+    </shell:SystemTray.ProgressIndicator>
 
     <Grid x:Name="LayoutRoot" Background="Transparent">
         <Grid.RowDefinitions>
@@ -16,13 +21,16 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Заголовок страницы в нижнем регистре (канон Metro) -->
-        <StackPanel Grid.Row="0" Margin="18,17,0,20">
+        <!-- Шапка страницы с индикатором приватности -->
+        <StackPanel Grid.Row="0" Margin="18,17,0,16">
             <TextBlock Text="board" Style="{StaticResource PhoneTextNormalStyle}"/>
-            <TextBlock x:Name="BoardTitle" Text="name" Margin="0,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+            <StackPanel Orientation="Horizontal" Margin="0,-7,0,0">
+                <TextBlock x:Name="BoardVisibilityIcon" FontFamily="Segoe UI Symbol" FontSize="38" Margin="0,0,8,0" VerticalAlignment="Center" Opacity="0.7"/>
+                <TextBlock x:Name="BoardTitle" Text="name" Style="{StaticResource PhoneTextTitle1Style}" Margin="0" VerticalAlignment="Center"/>
+            </StackPanel>
         </StackPanel>
 
-        <!-- Сетка пинов 2x2 внутри выбранной доски -->
+        <!-- Сетка пинов -->
         <phone:LongListSelector x:Name="BoardPinsList" 
                                 Grid.Row="1" 
                                 Margin="18,0,0,0"
@@ -31,43 +39,37 @@
                                 SelectionChanged="OnPinSelectionChanged">
             <phone:LongListSelector.ItemTemplate>
                 <DataTemplate>
-                    <Grid Width="212" Height="212" 
-                          Margin="0,0,12,12" 
-                          Background="#1AFFFFFF">
+                    <Grid Width="212" Height="212" Margin="0,0,12,12" Background="#1AFFFFFF">
+                        <!-- Контекстное меню пина -->
+                        <toolkit:ContextMenuService.ContextMenu>
+                            <toolkit:ContextMenu>
+                                <toolkit:MenuItem Header="edit" Click="OnEditPinContextClick"/>
+                                <toolkit:MenuItem Header="delete" Click="OnDeletePinContextClick"/>
+                            </toolkit:ContextMenu>
+                        </toolkit:ContextMenuService.ContextMenu>
 
-                        <!-- Квадратная картинка пина -->
                         <Image Stretch="UniformToFill">
                             <Image.Source>
                                 <BitmapImage UriSource="{Binding DisplayThumbnailUrl}" CreateOptions="BackgroundCreation"/>
                             </Image.Source>
                         </Image>
 
-                        <!-- Полупрозрачная плашка с описанием снизу (если текст есть) -->
                         <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
-                            <TextBlock Text="{Binding Description}" 
-                                       FontSize="14"
-                                       Foreground="White"
-                                       MaxHeight="36"
-                                       TextWrapping="Wrap"
-                                       TextTrimming="WordEllipsis"/>
+                            <TextBlock Text="{Binding Description}" FontSize="14" Foreground="White" MaxHeight="36" TextWrapping="Wrap" TextTrimming="WordEllipsis"/>
                         </Border>
                     </Grid>
                 </DataTemplate>
             </phone:LongListSelector.ItemTemplate>
-
-            <!-- Маркер конца списка пинов в доске -->
-            <phone:LongListSelector.ListFooterTemplate>
-                <DataTemplate>
-                    <StackPanel HorizontalAlignment="Center" Margin="0,16,18,36" Width="444">
-                        <TextBlock Text="— that's all folks —" 
-                                   FontSize="14"
-                                   FontWeight="Light"
-                                   Foreground="#66FFFFFF"
-                                   HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </DataTemplate>
-            </phone:LongListSelector.ListFooterTemplate>
         </phone:LongListSelector>
     </Grid>
+
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="False">
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/add.png" Text="add pin" Click="OnAddPinToBoardAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/edit.png" Text="edit" Click="OnEditBoardAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/delete.png" Text="delete" Click="OnDeleteBoardAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" Text="refresh" Click="OnRefreshAppBarClick"/>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
 
 </phone:PhoneApplicationPage>

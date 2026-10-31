@@ -16,49 +16,67 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="12,17,0,24">
+        <ProgressBar x:Name="LoginProgressBar" VerticalAlignment="Top" IsIndeterminate="True" Visibility="Collapsed" Margin="0" Foreground="{StaticResource PhoneAccentBrush}"/>
+
+        <StackPanel Grid.Row="0" Margin="24,17,0,28">
             <TextBlock Text="METROPINRY" Style="{StaticResource PhoneTextNormalStyle}"/>
-            <TextBlock x:Name="PageTitle" Text="sign in" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+            <TextBlock x:Name="PageTitle" Text="sign in" Margin="-3,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
 
         <ScrollViewer Grid.Row="1">
-            <StackPanel Margin="12,0,12,24">
-                <TextBlock Text="server address" Style="{StaticResource PhoneTextSubtleStyle}"/>
-                <TextBox x:Name="ServerUrlBox" Text="http://karelin-art.ddns.net" InputScope="Url"/>
+            <StackPanel Margin="24,0,24,24">
 
-                <!-- Блок: Логин и пароль (Основной) -->
+                <!-- Адрес сервера -->
+                <Grid Margin="-12,0,-12,12">
+                    <TextBox x:Name="ServerUrlBox" Text="https://" InputScope="Url" TextChanged="TextBox_TextChanged"/>
+                    <TextBlock x:Name="ServerUrlHint" Text="server address" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0" Visibility="Collapsed"/>
+                </Grid>
+
                 <StackPanel x:Name="CredentialsPanel">
-                    <TextBlock Text="username" Margin="0,10,0,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
-                    <TextBox x:Name="UsernameBox" InputScope="PersonalFullName"/>
+                    <!-- Логин -->
+                    <Grid Margin="-12,0,-12,12">
+                        <TextBox x:Name="UsernameBox" InputScope="PersonalFullName" TextChanged="TextBox_TextChanged"/>
+                        <TextBlock x:Name="UsernameHint" Text="username" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                    </Grid>
 
-                    <TextBlock Text="password" Margin="0,10,0,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
-                    <PasswordBox x:Name="PasswordBox"/>
+                    <!-- Email (для регистрации) -->
+                    <StackPanel x:Name="EmailPanel" Visibility="Collapsed">
+                        <Grid Margin="-12,0,-12,12">
+                            <TextBox x:Name="EmailBox" InputScope="EmailSmtpAddress" TextChanged="TextBox_TextChanged"/>
+                            <TextBlock x:Name="EmailHint" Text="email" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Пароль (нижний отступ уменьшен с 24 до 12) -->
+                    <Grid Margin="-12,0,-12,12">
+                        <PasswordBox x:Name="PasswordBox" PasswordChanged="PasswordBox_PasswordChanged"/>
+                        <TextBlock x:Name="PasswordHint" Text="password" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                    </Grid>
                 </StackPanel>
 
-                <!-- Блок: Токен (Альтернативный) -->
+                <!-- Токен (нижний отступ уменьшен с 24 до 12) -->
                 <StackPanel x:Name="TokenPanel" Visibility="Collapsed">
-                    <TextBlock Text="api token" Margin="0,10,0,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
-                    <TextBox x:Name="TokenBox"/>
+                    <Grid Margin="-12,0,-12,12">
+                        <TextBox x:Name="TokenBox" TextChanged="TextBox_TextChanged"/>
+                        <TextBlock x:Name="TokenHint" Text="api token" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                    </Grid>
                 </StackPanel>
 
-                <ProgressBar x:Name="LoginProgressBar" 
-                             IsIndeterminate="True" 
-                             Visibility="Collapsed" 
-                             Margin="0,16,0,16"/>
-
-                <Button x:Name="SignInButton" 
-                        Content="sign in" 
-                        Margin="0,12,0,8" 
-                        Click="OnSignInClick"/>
-
-                <!-- Переключатель режима авторизации -->
-                <HyperlinkButton x:Name="SwitchAuthModeButton"
-                                 Content="or use api token instead" 
-                                 HorizontalAlignment="Center" 
-                                 Margin="0,4,0,0" 
-                                 Click="OnSwitchAuthModeClick"/>
+                <!-- Кнопка теперь прилегает вплотную к полям -->
+                <Button x:Name="ActionBtn" Content="sign in" Margin="-12,0,-12,12" BorderThickness="2" Click="OnActionBtnClick"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>
+
+    <!-- Нативное меню Metro UI -->
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar Mode="Minimized" Opacity="0.99" IsMenuEnabled="True">
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="create account" Click="OnToggleModeClick" />
+                <shell:ApplicationBarMenuItem Text="use api token" Click="OnSwitchAuthModeClick" />
+                <shell:ApplicationBarMenuItem Text="browse as guest" Click="OnGuestModeClick" />
+            </shell:ApplicationBar.MenuItems>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
 
 </phone:PhoneApplicationPage>

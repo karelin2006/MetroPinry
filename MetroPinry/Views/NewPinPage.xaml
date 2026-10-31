@@ -1,0 +1,111 @@
+﻿<phone:PhoneApplicationPage
+    x:Class="MetroPinry.Views.NewPinPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <phone:PhoneApplicationPage.Resources>
+        <shell:ProgressIndicator x:Key="ProgressIndicator" IsVisible="False" IsIndeterminate="True" Text="saving pin..."/>
+    </phone:PhoneApplicationPage.Resources>
+
+    <Grid x:Name="LayoutRoot" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="18,17,0,10">
+            <TextBlock Text="metropinry" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="PageTitle" Text="add pin" Margin="0,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" Margin="12,0,12,0">
+            <StackPanel Margin="6,0,6,24">
+
+                <Border Width="200" Height="200" Background="#1AFFFFFF" HorizontalAlignment="Left" Margin="6,0,0,16">
+                    <Grid>
+                        <TextBlock x:Name="PlaceholderText" Text="no image selected" Style="{StaticResource PhoneTextSubtleStyle}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        <Image x:Name="ImagePreview" Stretch="UniformToFill" Visibility="Collapsed"/>
+                    </Grid>
+                </Border>
+
+                <!-- Кнопки выбора и сброса фото -->
+                <Grid Margin="-6,0,-6,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="BtnPickImage" Content="choose from gallery" Click="OnPickImageClick" Margin="0,0,6,0"/>
+                    <Button x:Name="BtnClearImage" Grid.Column="1" Content="clear" Click="OnClearImageClick" Visibility="Collapsed"/>
+                </Grid>
+
+                <TextBlock Text="image url" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
+                <TextBox x:Name="TxtImageUrl" InputScope="Url" TextChanged="OnImageUrlChanged" Margin="-6,0,-6,8"/>
+
+                <TextBlock Text="description" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
+                <TextBox x:Name="TxtDescription" TextWrapping="Wrap" AcceptsReturn="True" Height="90" Margin="-6,0,-6,8"/>
+
+                <TextBlock Text="tags (comma or # separated)" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
+                <!-- Поле ввода без автоподстановки -->
+                <TextBox x:Name="TxtTags" 
+                         TextChanged="OnTagsTextChanged" 
+                         Margin="-6,0,-6,0"/>
+
+                <!-- Выпадающий список совпадений для ручного выбора пальцем -->
+                <Border x:Name="TagsPopupBorder" 
+                        Background="{StaticResource PhoneChromeBrush}" 
+                        BorderBrush="{StaticResource PhoneSubtleBrush}" 
+                        BorderThickness="1" 
+                        Margin="0,0,0,8" 
+                        MaxHeight="180" 
+                        Visibility="Collapsed">
+                    <ListBox x:Name="SuggestedTagsList" 
+                             SelectionChanged="OnSuggestedTagTap">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="12,10">
+                                    <TextBlock Text="{Binding}" 
+                       FontSize="20" 
+                       Foreground="{StaticResource PhoneForegroundBrush}"/>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <!-- Выбор доски + кнопка создания -->
+                <Grid Margin="6,8,6,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="board" Style="{StaticResource PhoneTextSubtleStyle}" VerticalAlignment="Center"/>
+                    <HyperlinkButton Grid.Column="1" 
+                                     Content="+ create board" 
+                                     Foreground="{StaticResource PhoneAccentBrush}"
+                                     Click="OnCreateNewBoardClick"
+                                     Margin="0,-12,0,-12"/>
+                </Grid>
+                <toolkit:ListPicker x:Name="BoardPicker" DisplayMemberPath="Name" Margin="6,0,6,12"/>
+
+                <CheckBox x:Name="ChkIsPrivate" Content="private (hidden from feed)" Margin="-12,0,0,12"/>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="False">
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/upload.png" Text="save" Click="OnSaveAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/cancel.png" Text="cancel" Click="OnCancelAppBarClick"/>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
+
+</phone:PhoneApplicationPage>

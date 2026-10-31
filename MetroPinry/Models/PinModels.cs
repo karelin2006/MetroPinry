@@ -110,13 +110,55 @@ namespace MetroPinry.Models
         public List<Pin> Results { get; set; }
     }
 
-    public class Pin
+    public class Pin : INotifyPropertyChanged
     {
         [JsonProperty("id")]
         public int Id { get; set; }
 
+        private string _description;
         [JsonProperty("description")]
-        public string Description { get; set; }
+        public string Description
+        {
+            get { return _description; }
+            set
+            {
+                if (_description != value)
+                {
+                    _description = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        private List<string> _tags;
+        [JsonProperty("tags")]
+        public List<string> Tags
+        {
+            get { return _tags; }
+            set
+            {
+                if (_tags != value)
+                {
+                    _tags = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        private List<object> _boards;
+        [JsonProperty("boards")]
+        public List<object> Boards
+        {
+            get { return _boards; }
+            set
+            {
+                if (_boards != value)
+                {
+                    _boards = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
 
         [JsonProperty("image")]
         public PinImageData Image { get; set; }
@@ -124,17 +166,43 @@ namespace MetroPinry.Models
         [JsonProperty("submitter")]
         public UserProfile Submitter { get; set; }
 
+        private bool _isPrivate;
+        [JsonProperty("private")]
+        public bool IsPrivate
+        {
+            get { return _isPrivate; }
+            set
+            {
+                if (_isPrivate != value)
+                {
+                    _isPrivate = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
         [JsonIgnore]
         public Uri DisplayThumbnailUrl
         {
             get
             {
-                if (Image == null || string.IsNullOrEmpty(Image.ResolvedThumbnailUrl))
-                    return null;
+                if (Image == null) return null;
+
+                string targetUrl = Image.ResolvedThumbnailUrl;
+                if (string.IsNullOrEmpty(targetUrl))
+                {
+                    targetUrl = Image.ResolvedStandardUrl;
+                }
+                if (string.IsNullOrEmpty(targetUrl))
+                {
+                    targetUrl = Image.ResolvedOriginalUrl;
+                }
+
+                if (string.IsNullOrEmpty(targetUrl)) return null;
 
                 try
                 {
-                    return new Uri(Image.ResolvedThumbnailUrl, UriKind.Absolute);
+                    return new Uri(targetUrl, UriKind.Absolute);
                 }
                 catch
                 {
@@ -150,49 +218,91 @@ namespace MetroPinry.Models
             {
                 if (Image == null) return null;
 
-                string path = null;
-                if (Image.Standard != null && !string.IsNullOrEmpty(Image.Standard.ImageUrl))
+                string targetUrl = Image.ResolvedStandardUrl;
+                if (string.IsNullOrEmpty(targetUrl))
                 {
-                    path = Image.Standard.ImageUrl;
+                    targetUrl = Image.ResolvedOriginalUrl;
                 }
-                else
+                if (string.IsNullOrEmpty(targetUrl))
                 {
-                    path = Image.RawImageUrl;
+                    targetUrl = Image.ResolvedThumbnailUrl;
                 }
 
-                string full = PinImageData.FormatFullUrl(path);
-                if (string.IsNullOrEmpty(full)) return DisplayThumbnailUrl;
+                if (string.IsNullOrEmpty(targetUrl)) return null;
 
                 try
                 {
-                    return new Uri(full, UriKind.Absolute);
+                    return new Uri(targetUrl, UriKind.Absolute);
                 }
                 catch
                 {
-                    return DisplayThumbnailUrl;
+                    return null;
                 }
             }
         }
 
-        /// <summary>
-        /// Абсолютный адрес оригинального полноразмерного файла для скачивания в память
-        /// </summary>
         [JsonIgnore]
         public Uri DisplayOriginalUrl
         {
             get
             {
-                if (Image == null || string.IsNullOrEmpty(Image.ResolvedOriginalUrl))
-                    return null;
+                if (Image == null) return null;
+
+                string targetUrl = Image.ResolvedOriginalUrl;
+                if (string.IsNullOrEmpty(targetUrl))
+                {
+                    targetUrl = Image.ResolvedStandardUrl;
+                }
+
+                if (string.IsNullOrEmpty(targetUrl)) return null;
 
                 try
                 {
-                    return new Uri(Image.ResolvedOriginalUrl, UriKind.Absolute);
+                    return new Uri(targetUrl, UriKind.Absolute);
                 }
                 catch
                 {
                     return DisplayStandardUrl;
                 }
+            }
+        }
+
+        public bool BelongsToBoard(int boardId, string boardName)
+        {
+            if (Boards == null || Boards.Count == 0) return false;
+
+            string targetIdStr = "\"id\":" + boardId.ToString();
+            string targetIdStrSpace = "\"id\": " + boardId.ToString();
+            string targetNameStr = "\"name\":\"" + boardName + "\"";
+
+            foreach (var item in Boards)
+            {
+                if (item == null) continue;
+
+                string val = item.ToString();
+
+                if (val == boardId.ToString()) return true;
+
+                if (val.Contains(targetIdStr) || val.Contains(targetIdStrSpace))
+                {
+                    return true;
+                }
+
+                if (!string.IsNullOrEmpty(boardName) && val.Contains(targetNameStr))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+            {
+                handler(this, new PropertyChangedEventArgs(propertyName));
             }
         }
     }
@@ -221,22 +331,24 @@ namespace MetroPinry.Models
                 {
                     path = Thumbnail.ImageUrl;
                 }
-                else if (Standard != null && !string.IsNullOrEmpty(Standard.ImageUrl))
-                {
-                    path = Standard.ImageUrl;
-                }
-                else
-                {
-                    path = RawImageUrl;
-                }
-
                 return FormatFullUrl(path);
             }
         }
 
-        /// <summary>
-        /// Возвращает полный URL оригинального загруженного файла
-        /// </summary>
+        [JsonIgnore]
+        public string ResolvedStandardUrl
+        {
+            get
+            {
+                string path = null;
+                if (Standard != null && !string.IsNullOrEmpty(Standard.ImageUrl))
+                {
+                    path = Standard.ImageUrl;
+                }
+                return FormatFullUrl(path);
+            }
+        }
+
         [JsonIgnore]
         public string ResolvedOriginalUrl
         {
@@ -252,17 +364,18 @@ namespace MetroPinry.Models
 
             string baseServer = (StorageService.ServerUrl ?? "http://karelin-art.ddns.net").TrimEnd('/');
 
+            if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return path;
+            }
+
             if (path.StartsWith("/"))
             {
                 return baseServer + path;
             }
 
-            if (path.StartsWith("https://karelin-art.ddns.net", StringComparison.OrdinalIgnoreCase))
-            {
-                return "http://" + path.Substring("https://".Length);
-            }
-
-            return path;
+            return baseServer + "/" + path;
         }
     }
 
@@ -284,19 +397,71 @@ namespace MetroPinry.Models
         public List<Board> Results { get; set; }
     }
 
-    public class Board
+    public class Board : INotifyPropertyChanged
     {
         [JsonProperty("id")]
         public int Id { get; set; }
 
+        private string _name;
         [JsonProperty("name")]
-        public string Name { get; set; }
+        public string Name
+        {
+            get { return _name; }
+            set
+            {
+                if (_name != value)
+                {
+                    _name = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
 
+        private int _pinsCount;
         [JsonProperty("total_pins")]
-        public int PinsCount { get; set; }
+        public int PinsCount
+        {
+            get { return _pinsCount; }
+            set
+            {
+                if (_pinsCount != value)
+                {
+                    _pinsCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
 
+        private Pin _cover;
         [JsonProperty("cover")]
-        public Pin Cover { get; set; }
+        public Pin Cover
+        {
+            get { return _cover; }
+            set
+            {
+                if (_cover != value)
+                {
+                    _cover = value;
+                    NotifyPropertyChanged();
+                    NotifyPropertyChanged("CoverImageUrl");
+                }
+            }
+        }
+
+        private bool _isPrivate;
+        [JsonProperty("private")]
+        public bool IsPrivate
+        {
+            get { return _isPrivate; }
+            set
+            {
+                if (_isPrivate != value)
+                {
+                    _isPrivate = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
 
         [JsonIgnore]
         public Uri CoverImageUrl
@@ -308,6 +473,16 @@ namespace MetroPinry.Models
                     return Cover.DisplayThumbnailUrl;
                 }
                 return null;
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+            {
+                handler(this, new PropertyChangedEventArgs(propertyName));
             }
         }
     }
