@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -19,6 +18,7 @@ namespace MetroPinry.Views
     public partial class PinDetailPage : PhoneApplicationPage
     {
         public static Pin SelectedPin { get; set; }
+        public static Board SourceBoard { get; set; }
 
         public PinDetailPage()
         {
@@ -32,6 +32,7 @@ namespace MetroPinry.Views
             if (SelectedPin != null)
             {
                 BindPinData();
+                UpdateActionButtons();
             }
             else
             {
@@ -72,119 +73,14 @@ namespace MetroPinry.Views
                 TxtVisibility.Text = "публичный";
             }
 
-            UpdateBoardsText();
-
             if (FullImage.Source == null)
             {
                 await LoadPinImageAsync();
             }
         }
 
-        private void UpdateBoardsText()
-        {
-            if (SelectedPin == null || App.ViewModel.Boards == null)
-            {
-                TxtBoards.Text = "—";
-                return;
-            }
-
-            var attached = App.ViewModel.Boards
-                .Where(b => SelectedPin.BelongsToBoard(b.Id, b.Name))
-                .Select(b => b.Name)
-                .ToList();
-
-            TxtBoards.Text = attached.Count > 0 ? string.Join(", ", attached) : "—";
-        }
-
         // ==========================================
-        // МЕНЮ: ПРИКРЕПИТЬ И ОТКРЕПИТЬ
-        // ==========================================
-
-        private void OnAttachBoardMenuClick(object sender, EventArgs e)
-        {
-            if (App.ViewModel.Boards == null || App.ViewModel.Boards.Count == 0)
-            {
-                MessageBox.Show("У вас пока нет ни одной доски.", "Информация", MessageBoxButton.OK);
-                return;
-            }
-
-            var unattached = App.ViewModel.Boards
-                .Where(b => !SelectedPin.BelongsToBoard(b.Id, b.Name))
-                .ToList();
-
-            if (unattached.Count == 0)
-            {
-                MessageBox.Show("Этот пин уже прикреплен ко всем вашим доскам.", "Информация", MessageBoxButton.OK);
-                return;
-            }
-
-            SelectBoardPage.TargetPin = SelectedPin;
-            SelectBoardPage.IsAttachMode = true;
-            NavigationService.Navigate(new Uri("/Views/SelectBoardPage.xaml", UriKind.Relative));
-        }
-
-        private async void OnDetachBoardMenuClick(object sender, EventArgs e)
-        {
-            if (App.ViewModel.Boards == null || App.ViewModel.Boards.Count == 0)
-            {
-                MessageBox.Show("У вас пока нет досок.", "Информация", MessageBoxButton.OK);
-                return;
-            }
-
-            // Контекст: если открыто прямо из доски, сразу открепляем от неё
-            var currentBoard = BoardDetailsPage.SelectedBoard;
-            if (currentBoard != null && SelectedPin.BelongsToBoard(currentBoard.Id, currentBoard.Name))
-            {
-                var confirm = MessageBox.Show(
-                    string.Format("Открепить этот пин от доски \"{0}\"?", currentBoard.Name),
-                    "Открепление",
-                    MessageBoxButton.OKCancel);
-
-                if (confirm == MessageBoxResult.OK)
-                {
-                    SetLoadingState(true, "открепление...");
-                    var api = new PinryApiService();
-                    bool success = await api.RemovePinFromBoardAsync(currentBoard.Id, SelectedPin.Id);
-                    SetLoadingState(false);
-
-                    if (success)
-                    {
-                        if (SelectedPin.Boards != null)
-                        {
-                            SelectedPin.Boards.Remove(currentBoard.Id);
-                            SelectedPin.Boards.Remove(currentBoard.Id.ToString());
-                            SelectedPin.Boards.RemoveAll(item => item != null && item.ToString().Contains("\"id\":" + currentBoard.Id));
-                        }
-                        UpdateBoardsText();
-                        await App.ViewModel.LoadDataAsync();
-                    }
-                    else
-                    {
-                        MessageBox.Show("Не удалось открепить пин от доски.", "Ошибка", MessageBoxButton.OK);
-                    }
-                }
-                return;
-            }
-
-            // Если открыто из ленты
-            var attached = App.ViewModel.Boards
-                .Where(b => SelectedPin.BelongsToBoard(b.Id, b.Name))
-                .ToList();
-
-            if (attached.Count == 0)
-            {
-                MessageBox.Show("Этот пин не прикреплен ни к одной доске.", "Информация", MessageBoxButton.OK);
-                return;
-            }
-
-            // Открываем экран выбора для открепления
-            SelectBoardPage.TargetPin = SelectedPin;
-            SelectBoardPage.IsAttachMode = false;
-            NavigationService.Navigate(new Uri("/Views/SelectBoardPage.xaml", UriKind.Relative));
-        }
-
-        // ==========================================
-        // БАЗОВЫЕ ДЕЙСТВИЯ (IMAGE, EDIT, DOWNLOAD, DELETE)
+        // БАЗОВЫЕ ДЕЙСТВИЯ (IMAGE, EDIT/REPIN, DOWNLOAD, DELETE)
         // ==========================================
 
         private async Task LoadPinImageAsync()
@@ -230,32 +126,60 @@ namespace MetroPinry.Views
 
         private void SetLoadingState(bool isLoading, string statusText = "MetroPinry")
         {
-            if (AppProgressIndicator != null)
+            Dispatcher.BeginInvoke(() =>
             {
-                AppProgressIndicator.Text = statusText;
-                AppProgressIndicator.IsVisible = isLoading;
-            }
-
-            if (ApplicationBar != null)
-            {
-                foreach (var button in ApplicationBar.Buttons.OfType<ApplicationBarIconButton>())
+                if (AppProgressIndicator != null)
                 {
-                    button.IsEnabled = !isLoading;
+                    AppProgressIndicator.Text = statusText;
+                    AppProgressIndicator.IsVisible = isLoading;
                 }
 
-                foreach (var menuItem in ApplicationBar.MenuItems.OfType<ApplicationBarMenuItem>())
+                if (ApplicationBar != null)
                 {
-                    menuItem.IsEnabled = !isLoading;
+                    if (isLoading)
+                    {
+                        foreach (var button in ApplicationBar.Buttons.OfType<ApplicationBarIconButton>())
+                        {
+                            button.IsEnabled = false;
+                        }
+                        foreach (var menuItem in ApplicationBar.MenuItems.OfType<ApplicationBarMenuItem>())
+                        {
+                            menuItem.IsEnabled = false;
+                        }
+                    }
+                    else
+                    {
+                        UpdateActionButtons();
+                    }
                 }
-            }
+            });
         }
 
-        private void OnEditAppBarClick(object sender, EventArgs e)
+        private void OnPrimaryActionAppBarClick(object sender, EventArgs e)
         {
             if (SelectedPin == null) return;
 
-            NewPinPage.PinToEdit = SelectedPin;
-            NavigationService.Navigate(new Uri("/Views/NewPinPage.xaml", UriKind.Relative));
+            var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
+            bool isGuest = settings.Contains("IsGuest") && (bool)settings["IsGuest"];
+
+            if (isGuest)
+            {
+                MessageBox.Show("Для этого действия необходимо войти в аккаунт.");
+                return;
+            }
+
+            if (SelectedPin.IsMine)
+            {
+                NewPinPage.PinToEdit = SelectedPin;
+                NavigationService.Navigate(new Uri("/Views/NewPinPage.xaml", UriKind.Relative));
+            }
+            else
+            {
+                SelectBoardPage.TargetPin = SelectedPin;
+                SelectBoardPage.IsRepinMode = true;
+                SelectBoardPage.IsAttachMode = false;
+                NavigationService.Navigate(new Uri("/Views/SelectBoardPage.xaml", UriKind.Relative));
+            }
         }
 
         private async void OnDownloadAppBarClick(object sender, EventArgs e)
@@ -318,32 +242,129 @@ namespace MetroPinry.Views
 
             SetLoadingState(true, "удаление пина...");
 
-            var api = new PinryApiService();
-            bool success = await api.DeletePinAsync(SelectedPin.Id);
-
-            SetLoadingState(false);
+            bool success = false;
+            try
+            {
+                var api = new PinryApiService();
+                success = await api.DeletePinAsync(SelectedPin.Id);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("DELETE PIN ERROR: " + ex.Message);
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
 
             if (success)
             {
-                if (App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Contains(SelectedPin))
-                {
-                    App.ViewModel.RecentPins.Remove(SelectedPin);
-                }
-                if (App.ViewModel.UserPins != null && App.ViewModel.UserPins.Contains(SelectedPin))
-                {
-                    App.ViewModel.UserPins.Remove(SelectedPin);
-                }
-
+                var pinToRemove = SelectedPin;
                 SelectedPin = null;
 
-                if (NavigationService.CanGoBack)
+                Dispatcher.BeginInvoke(() =>
                 {
-                    NavigationService.GoBack();
-                }
+                    if (App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Contains(pinToRemove))
+                    {
+                        App.ViewModel.RecentPins.Remove(pinToRemove);
+                    }
+                    if (App.ViewModel.UserPins != null && App.ViewModel.UserPins.Contains(pinToRemove))
+                    {
+                        App.ViewModel.UserPins.Remove(pinToRemove);
+                    }
+
+                    if (NavigationService.CanGoBack)
+                    {
+                        NavigationService.GoBack();
+                    }
+                });
             }
             else
             {
                 MessageBox.Show("Не удалось удалить пин. Проверьте права доступа и сеть.", "Ошибка", MessageBoxButton.OK);
+            }
+        }
+
+        private void OnAttachBoardMenuClick(object sender, EventArgs e)
+        {
+            if (App.ViewModel.Boards == null || App.ViewModel.Boards.Count == 0)
+            {
+                MessageBox.Show("У вас пока нет ни одной доски.", "Информация", MessageBoxButton.OK);
+                return;
+            }
+
+            SelectBoardPage.TargetPin = SelectedPin;
+            SelectBoardPage.IsAttachMode = true;
+            SelectBoardPage.IsRepinMode = false;
+            NavigationService.Navigate(new Uri("/Views/SelectBoardPage.xaml", UriKind.Relative));
+        }
+
+        private void OnDetachBoardMenuClick(object sender, EventArgs e)
+        {
+            if (App.ViewModel.Boards == null || App.ViewModel.Boards.Count == 0)
+            {
+                MessageBox.Show("У вас пока нет досок.", "Информация", MessageBoxButton.OK);
+                return;
+            }
+
+            SelectBoardPage.TargetPin = SelectedPin;
+            SelectBoardPage.IsAttachMode = false;
+            SelectBoardPage.IsRepinMode = false;
+            NavigationService.Navigate(new Uri("/Views/SelectBoardPage.xaml", UriKind.Relative));
+        }
+
+        private void UpdateActionButtons()
+        {
+            if (SelectedPin == null || ApplicationBar == null) return;
+
+            var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
+            bool isGuest = settings.Contains("IsGuest") && (bool)settings["IsGuest"];
+            bool isOwner = !isGuest && SelectedPin.IsMine;
+
+            if (ApplicationBar.Buttons.Count >= 3)
+            {
+                var actionBtn = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
+                var downloadBtn = ApplicationBar.Buttons[1] as ApplicationBarIconButton;
+                var deleteBtn = ApplicationBar.Buttons[2] as ApplicationBarIconButton;
+
+                if (actionBtn != null)
+                {
+                    if (isOwner)
+                    {
+                        actionBtn.IconUri = new Uri("/Assets/AppBar/edit.png", UriKind.Relative);
+                        actionBtn.Text = "edit";
+                        actionBtn.IsEnabled = true;
+                    }
+                    else if (!isGuest)
+                    {
+                        actionBtn.IconUri = new Uri("/Assets/AppBar/heart.png", UriKind.Relative);
+                        actionBtn.Text = "save pin";
+                        actionBtn.IsEnabled = true;
+                    }
+                    else
+                    {
+                        actionBtn.IsEnabled = false;
+                    }
+                }
+
+                if (downloadBtn != null)
+                {
+                    downloadBtn.IsEnabled = true;
+                }
+
+                if (deleteBtn != null)
+                {
+                    deleteBtn.IsEnabled = isOwner;
+                }
+            }
+
+            foreach (var menuItem in ApplicationBar.MenuItems.OfType<ApplicationBarMenuItem>())
+            {
+                string txt = (menuItem.Text ?? string.Empty).ToLowerInvariant();
+                if (txt.Contains("доск") || txt.Contains("board"))
+                {
+                    menuItem.IsEnabled = isOwner;
+                }
             }
         }
     }

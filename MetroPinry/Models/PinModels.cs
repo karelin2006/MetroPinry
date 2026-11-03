@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
+using System.IO.IsolatedStorage;
 using System.Runtime.CompilerServices;
+using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
 using MetroPinry.Services;
 
@@ -66,6 +69,7 @@ namespace MetroPinry.Models
                     _gravatarHash = value;
                     NotifyPropertyChanged();
                     NotifyPropertyChanged("AvatarUrl");
+                    NotifyPropertyChanged("LocalAvatar");
                 }
             }
         }
@@ -78,12 +82,47 @@ namespace MetroPinry.Models
         {
             get
             {
-                string hash = !string.IsNullOrEmpty(GravatarHash)
-                    ? GravatarHash
+                string hash = !string.IsNullOrWhiteSpace(GravatarHash)
+                    ? GravatarHash.Trim().ToLowerInvariant()
                     : "00000000000000000000000000000000";
 
                 string url = string.Format("http://www.gravatar.com/avatar/{0}?s=144&d=identicon", hash);
                 return new Uri(url, UriKind.Absolute);
+            }
+        }
+
+        [JsonIgnore]
+        public BitmapImage LocalAvatar
+        {
+            get
+            {
+                var bmp = new BitmapImage();
+                bmp.CreateOptions = BitmapCreateOptions.BackgroundCreation;
+
+                try
+                {
+                    using (var isoStore = IsolatedStorageFile.GetUserStoreForApplication())
+                    {
+                        string safeName = string.IsNullOrWhiteSpace(Username) ? "user" : Username;
+                        string fileName = string.Format("avatar_{0}.jpg", safeName);
+
+                        if (isoStore.FileExists(fileName))
+                        {
+                            using (var fileStream = isoStore.OpenFile(fileName, FileMode.Open, FileAccess.Read))
+                            {
+                                var ms = new MemoryStream();
+                                fileStream.CopyTo(ms);
+                                ms.Position = 0;
+                                bmp.SetSource(ms);
+                                return bmp;
+                            }
+                        }
+                    }
+                }
+                catch { }
+
+                bmp.UriSource = AvatarUrl;
+                return bmp;
             }
         }
 
@@ -271,29 +310,41 @@ namespace MetroPinry.Models
         {
             if (Boards == null || Boards.Count == 0) return false;
 
-            string targetIdStr = "\"id\":" + boardId.ToString();
-            string targetIdStrSpace = "\"id\": " + boardId.ToString();
-            string targetNameStr = "\"name\":\"" + boardName + "\"";
-
             foreach (var item in Boards)
             {
                 if (item == null) continue;
 
-                string val = item.ToString();
+                var jObj = item as Newtonsoft.Json.Linq.JObject;
+                if (jObj != null)
+                {
+                    if (jObj["id"] != null && jObj["id"].ToString() == boardId.ToString()) return true;
+                    if (!string.IsNullOrEmpty(boardName) && jObj["name"] != null && jObj["name"].ToString() == boardName) return true;
+                    continue;
+                }
 
-                if (val == boardId.ToString()) return true;
-
-                if (val.Contains(targetIdStr) || val.Contains(targetIdStrSpace))
+                string val = item.ToString().Trim();
+                if (val == boardId.ToString())
                 {
                     return true;
                 }
 
-                if (!string.IsNullOrEmpty(boardName) && val.Contains(targetNameStr))
+                if (val.Contains("\"id\":" + boardId.ToString()) || val.Contains("\"id\": " + boardId.ToString()))
                 {
                     return true;
                 }
             }
             return false;
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public bool IsMine
+        {
+            get
+            {
+                var current = App.ViewModel.CurrentUser;
+                if (current == null || Submitter == null) return false;
+                return string.Equals(Submitter.Username, current.Username, StringComparison.OrdinalIgnoreCase);
+            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -362,7 +413,7 @@ namespace MetroPinry.Models
         {
             if (string.IsNullOrEmpty(path)) return null;
 
-            string baseServer = (StorageService.ServerUrl ?? "http://karelin-art.ddns.net").TrimEnd('/');
+            string baseServer = (StorageService.ServerUrl ?? "").TrimEnd('/');
 
             if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -473,6 +524,22 @@ namespace MetroPinry.Models
                     return Cover.DisplayThumbnailUrl;
                 }
                 return null;
+            }
+        }
+
+        [JsonProperty("submitter")]
+        public UserProfile Submitter { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public bool IsMine
+        {
+            get
+            {
+                var current = App.ViewModel.CurrentUser;
+                if (current == null) return false;
+                if (Submitter == null) return false;
+
+                return string.Equals(Submitter.Username, current.Username, StringComparison.OrdinalIgnoreCase);
             }
         }
 

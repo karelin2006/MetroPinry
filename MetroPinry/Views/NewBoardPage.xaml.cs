@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
@@ -11,10 +12,7 @@ namespace MetroPinry.Views
 {
     public partial class NewBoardPage : PhoneApplicationPage
     {
-        // Название новой доски для автовыбора при создании пина
         public static string NewlyCreatedBoardName { get; set; }
-
-        // Доска, переданная для редактирования
         public static Board BoardToEdit { get; set; }
 
         public NewBoardPage()
@@ -26,10 +24,10 @@ namespace MetroPinry.Views
         {
             base.OnNavigatedTo(e);
 
+            var titleBlock = FindName("PageTitle") as TextBlock;
+
             if (BoardToEdit != null)
             {
-                // Если в XAML есть TextBlock с x:Name="PageTitle", меняем заголовок
-                var titleBlock = FindName("PageTitle") as System.Windows.Controls.TextBlock;
                 if (titleBlock != null)
                 {
                     titleBlock.Text = "edit board";
@@ -40,7 +38,6 @@ namespace MetroPinry.Views
             }
             else
             {
-                var titleBlock = FindName("PageTitle") as System.Windows.Controls.TextBlock;
                 if (titleBlock != null)
                 {
                     titleBlock.Text = "create board";
@@ -68,8 +65,15 @@ namespace MetroPinry.Views
 
         private async void OnSaveAppBarClick(object sender, EventArgs e)
         {
+            // 1. Принудительно забираем фокус у клавиатуры/текстовых полей
+            this.Focus();
+
             string boardName = TxtBoardName.Text != null ? TxtBoardName.Text.Trim() : string.Empty;
-            bool isPrivate = ChkIsPrivate.IsChecked ?? false;
+
+            // 2. Строгая проверка чекбокса
+            bool isPrivate = (ChkIsPrivate.IsChecked == true);
+
+            System.Diagnostics.Debug.WriteLine(string.Format(">>> NEW BOARD SUBMIT: Name='{0}', IsPrivate={1}", boardName, isPrivate));
 
             if (string.IsNullOrEmpty(boardName))
             {
@@ -82,22 +86,26 @@ namespace MetroPinry.Views
             var apiService = new PinryApiService();
             bool success = false;
 
-            // 1. Редактирование существующей доски
             if (BoardToEdit != null)
             {
-                success = await apiService.UpdateBoardAsync(BoardToEdit.Id, boardName, isPrivate);
+                success = await apiService.UpdateBoardAsync(
+                    boardId: BoardToEdit.Id,
+                    name: boardName,
+                    description: string.Empty,
+                    isPrivate: isPrivate);
 
                 if (success)
                 {
-                    // Мгновенное обновление полей в памяти
                     BoardToEdit.Name = boardName;
                     BoardToEdit.IsPrivate = isPrivate;
                 }
             }
-            // 2. Создание новой доски
             else
             {
-                success = await apiService.CreateBoardAsync(boardName, isPrivate);
+                success = await apiService.CreateBoardAsync(
+                    name: boardName,
+                    description: string.Empty,
+                    isPrivate: isPrivate);
 
                 if (success)
                 {
@@ -110,6 +118,7 @@ namespace MetroPinry.Views
             if (success)
             {
                 BoardToEdit = null;
+                App.ViewModel.IsDataLoaded = false;
                 await App.ViewModel.LoadDataAsync();
                 NavigationService.GoBack();
             }
@@ -131,11 +140,11 @@ namespace MetroPinry.Views
 
         private void SetLoadingState(bool isLoading)
         {
-            var progress = Resources.Contains("ProgressIndicator") ? (ProgressIndicator)Resources["ProgressIndicator"] : null;
-            if (progress != null)
+            var indicator = SystemTray.ProgressIndicator;
+            if (indicator != null)
             {
-                SystemTray.SetProgressIndicator(this, progress);
-                progress.IsVisible = isLoading;
+                indicator.IsVisible = isLoading;
+                indicator.Text = isLoading ? "сохранение..." : "MetroPinry";
             }
 
             if (ApplicationBar != null)
@@ -149,5 +158,8 @@ namespace MetroPinry.Views
             TxtBoardName.IsEnabled = !isLoading;
             ChkIsPrivate.IsEnabled = !isLoading;
         }
+
+
+
     }
 }

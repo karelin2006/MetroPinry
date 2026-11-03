@@ -21,6 +21,7 @@
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="18,12,18,30">
 
+                <!-- Контейнер изображения с черной подложкой -->
                 <Border Background="#FF000000" 
                         Margin="0,0,0,16" 
                         HorizontalAlignment="Center" 
@@ -32,6 +33,7 @@
                            VerticalAlignment="Center" />
                 </Border>
 
+                <!-- Описание пина -->
                 <TextBlock x:Name="PinDescription"
                            Text="Описание"
                            Style="{StaticResource PhoneTextTitle2Style}"
@@ -40,13 +42,13 @@
 
                 <Rectangle Height="1" Fill="#33FFFFFF" Margin="0,0,0,16"/>
 
+                <!-- Блок метаданных -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -66,10 +68,6 @@
                         <TextBlock x:Name="TxtVisibilityIcon" FontFamily="Segoe UI Symbol" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtVisibility" Text="—" VerticalAlignment="Center"/>
                     </StackPanel>
-
-                    <!-- Доски: только текст названий -->
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="доски" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,12,8"/>
-                    <TextBlock x:Name="TxtBoards" Grid.Row="3" Grid.Column="1" Text="—" TextWrapping="Wrap" Margin="0,0,0,8"/>
                 </Grid>
 
             </StackPanel>
@@ -78,7 +76,7 @@
 
     <phone:PhoneApplicationPage.ApplicationBar>
         <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" Mode="Default">
-            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/edit.png" Text="edit" Click="OnEditAppBarClick"/>
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/edit.png" Text="edit" Click="OnPrimaryActionAppBarClick"/>
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/download.png" Text="download" Click="OnDownloadAppBarClick"/>
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/delete.png" Text="delete" Click="OnDeleteAppBarClick"/>
             <shell:ApplicationBar.MenuItems>

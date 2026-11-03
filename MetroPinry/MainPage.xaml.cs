@@ -19,6 +19,10 @@ namespace MetroPinry
     {
         private readonly ObservableCollection<Board> _filteredBoards = new ObservableCollection<Board>();
         private readonly ObservableCollection<Pin> _filteredPins = new ObservableCollection<Pin>();
+        private bool _isPageLoaded = false;
+        private int _lastPanoramaIndex = -1;
+
+        public static Pin LastViewedPin = null;
 
         public MainViewModel ViewModel
         {
@@ -32,14 +36,46 @@ namespace MetroPinry
 
             FoundBoardsList.ItemsSource = _filteredBoards;
             FoundPinsList.ItemsSource = _filteredPins;
+
+            this.Loaded += (s, e) =>
+            {
+                if (!_isPageLoaded)
+                {
+                    _isPageLoaded = true;
+                    UpdateAppBarButtons();
+                }
+            };
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
-            // Очищаем стек навигации при новом переходе, чтобы кнопка "Назад" закрывала приложение
-            if (e.NavigationMode == System.Windows.Navigation.NavigationMode.New)
+            if (e.NavigationMode == NavigationMode.Back)
+            {
+                if (LastViewedPin != null && FeedList != null)
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        try
+                        {
+                            FeedList.ScrollTo(LastViewedPin);
+                        }
+                        catch { }
+                        LastViewedPin = null;
+                    });
+                }
+                return;
+            }
+
+            bool forceRefresh = NavigationContext.QueryString.ContainsKey("refresh");
+            if (forceRefresh)
+            {
+                NavigationContext.QueryString.Remove("refresh");
+            }
+
+            bool isAddMode = NavigationContext.QueryString.ContainsKey("mode") && NavigationContext.QueryString["mode"] == "add";
+            if (e.NavigationMode == NavigationMode.New && !isAddMode)
             {
                 while (NavigationService.CanGoBack)
                 {
@@ -54,7 +90,6 @@ namespace MetroPinry
                 isGuest = (bool)settings["IsGuest"];
             }
 
-            // Если не авторизован и НЕ гость — редирект на окно входа
             if (!StorageService.IsAuthenticated && !isGuest)
             {
                 Dispatcher.BeginInvoke(() =>
@@ -64,29 +99,10 @@ namespace MetroPinry
                 return;
             }
 
-            // Прячем только кнопку "Добавить", оставляя меню (Sign Out) доступным
-            if (isGuest && ApplicationBar != null)
-            {
-                if (ApplicationBar.Buttons.Count > 0)
-                {
-                    // Предполагается, что кнопка Add - первая (индекс 0)
-                    var addButton = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
-                    if (addButton != null)
-                    {
-                        addButton.IsEnabled = false; // Отключаем её
-                    }
-                }
-            }
-
-            // Загружаем данные...
-            if (!App.ViewModel.IsDataLoaded || App.ViewModel.RecentPins.Count == 0)
+            if (!App.ViewModel.IsDataLoaded || App.ViewModel.RecentPins.Count == 0 || forceRefresh)
             {
                 await App.ViewModel.LoadDataAsync();
-            }
-
-            if (!App.ViewModel.IsDataLoaded || App.ViewModel.RecentPins.Count == 0)
-            {
-                await App.ViewModel.LoadDataAsync();
+                ResetFeedScrollToTop();
             }
 
             if (SearchBox != null && !string.IsNullOrWhiteSpace(SearchBox.Text))
@@ -94,36 +110,200 @@ namespace MetroPinry
                 PerformSearch(SearchBox.Text.Trim());
             }
 
-            ResetFeedScrollToTop();
+            UpdateAppBarButtons();
         }
 
         private void ResetFeedScrollToTop()
         {
             Dispatcher.BeginInvoke(() =>
             {
-                if (FeedList != null)
+                if (FeedList != null && App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Count > 0)
                 {
                     FeedList.SelectedItem = null;
-
-                    var firstItem = App.ViewModel.RecentPins?.FirstOrDefault();
+                    var firstItem = App.ViewModel.RecentPins.FirstOrDefault();
                     if (firstItem != null)
                     {
-                        FeedList.ScrollTo(firstItem);
+                        try
+                        {
+                            FeedList.ScrollTo(firstItem);
+                        }
+                        catch { }
                     }
                 }
             });
         }
 
+        // ==========================================
+        // БЛОКИРОВКА СЛУЧАЙНЫХ ДЕЙСТВИЙ (ЧУЖИЕ ПИНЫ, ЧУЖИЕ ДОСКИ, ДОСКА ALL)
+        // ==========================================
+
+        private void OnItemHold(object sender, System.Windows.Input.GestureEventArgs e)
+        {
+            var element = sender as FrameworkElement;
+            if (element == null) return;
+
+            if (ShouldSuppressContextMenu(element.DataContext))
+            {
+                e.Handled = true;
+                var menu = ContextMenuService.GetContextMenu(element);
+                if (menu != null)
+                {
+                    menu.IsOpen = false;
+                }
+            }
+        }
+
+        private void OnContextMenuOpened(object sender, RoutedEventArgs e)
+        {
+            var menu = sender as ContextMenu;
+            if (menu == null) return;
+
+            if (ShouldSuppressContextMenu(menu.DataContext))
+            {
+                menu.IsOpen = false;
+            }
+        }
+
+        private bool ShouldSuppressContextMenu(object dataContext)
+        {
+            var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
+            bool isGuest = settings.Contains("IsGuest") && (bool)settings["IsGuest"];
+            if (isGuest) return true;
+
+            // 1. Проверка для пинов
+            var pin = dataContext as Pin;
+            if (pin != null)
+            {
+                return !pin.IsMine;
+            }
+
+            // 2. Проверка для досок
+            var board = dataContext as Board;
+            if (board != null)
+            {
+                // Запрещено для виртуальной доски "all" (Id == -1) и чужих досок
+                if (board.Id == -1 || !board.IsMine)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // ==========================================
+        // ДЕЙСТВИЯ МЕНЮ
+        // ==========================================
+
+        private void OnEditBoardContextClick(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as MenuItem;
+            if (menuItem == null) return;
+
+            var board = menuItem.DataContext as Board;
+            if (board == null || board.Id == -1 || !board.IsMine) return;
+
+            NewBoardPage.BoardToEdit = board;
+            NavigationService.Navigate(new Uri("/Views/NewBoardPage.xaml", UriKind.Relative));
+        }
+
+        private async void OnDeleteBoardContextClick(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as MenuItem;
+            if (menuItem == null) return;
+
+            var board = menuItem.DataContext as Board;
+            if (board == null || board.Id == -1 || !board.IsMine) return;
+
+            var result = MessageBox.Show(
+                string.Format("Удалить доску \"{0}\"? Пины останутся в вашей ленте.", board.Name),
+                "Удаление доски",
+                MessageBoxButton.OKCancel);
+
+            if (result == MessageBoxResult.OK)
+            {
+                var api = new PinryApiService();
+                bool success = await api.DeleteBoardAsync(board.Id);
+
+                if (success)
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        App.ViewModel.Boards.Remove(board);
+                        App.ViewModel.UserBoardsWithAll.Remove(board);
+                        _filteredBoards.Remove(board);
+                    });
+                }
+                else
+                {
+                    MessageBox.Show("Не удалось удалить доску. Проверьте права доступа и сеть.", "Ошибка", MessageBoxButton.OK);
+                }
+            }
+        }
+
+        private void OnEditPinContextClick(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as MenuItem;
+            if (menuItem == null) return;
+
+            var pin = menuItem.DataContext as Pin;
+            if (pin == null || !pin.IsMine) return;
+
+            NewPinPage.PinToEdit = pin;
+            NewPinPage.PreselectedBoard = null;
+            NavigationService.Navigate(new Uri("/Views/NewPinPage.xaml", UriKind.Relative));
+        }
+
+        private async void OnDeletePinContextClick(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as MenuItem;
+            if (menuItem == null) return;
+
+            var pin = menuItem.DataContext as Pin;
+            if (pin == null || !pin.IsMine) return;
+
+            var result = MessageBox.Show("Удалить этот пин навсегда?", "Удаление пина", MessageBoxButton.OKCancel);
+            if (result == MessageBoxResult.OK)
+            {
+                var api = new PinryApiService();
+                bool success = await api.DeletePinAsync(pin.Id);
+
+                if (success)
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        if (App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Contains(pin))
+                        {
+                            App.ViewModel.RecentPins.Remove(pin);
+                        }
+                        if (App.ViewModel.UserPins != null && App.ViewModel.UserPins.Contains(pin))
+                        {
+                            App.ViewModel.UserPins.Remove(pin);
+                        }
+                        _filteredPins.Remove(pin);
+
+                        var allBoard = App.ViewModel.UserBoardsWithAll.FirstOrDefault(b => b.Id == -1);
+                        if (allBoard != null)
+                        {
+                            allBoard.PinsCount = App.ViewModel.UserPins != null ? App.ViewModel.UserPins.Count : 0;
+                        }
+                    });
+                }
+                else
+                {
+                    MessageBox.Show("Не удалось удалить пин.", "Ошибка", MessageBoxButton.OK);
+                }
+            }
+        }
+
+        // ==========================================
+        // ПОИСК И НАВИГАЦИЯ
+        // ==========================================
+
         private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
         {
             string query = SearchBox.Text != null ? SearchBox.Text.Trim() : string.Empty;
             PerformSearch(query);
-        }
-
-        private void OnSearchClearTapped(object sender, EventArgs e)
-        {
-            SearchBox.Text = string.Empty;
-            PerformSearch(string.Empty);
         }
 
         private void PerformSearch(string query)
@@ -215,6 +395,7 @@ namespace MetroPinry
             var pin = element.DataContext as Pin;
             if (pin == null) return;
 
+            LastViewedPin = pin;
             BoardDetailsPage.SelectedBoard = null;
             PinDetailPage.SelectedPin = pin;
             NavigationService.Navigate(new Uri("/Views/PinDetailPage.xaml", UriKind.Relative));
@@ -228,6 +409,7 @@ namespace MetroPinry
             var selectedPin = selector.SelectedItem as Pin;
             selector.SelectedItem = null;
 
+            LastViewedPin = selectedPin;
             BoardDetailsPage.SelectedBoard = null;
             PinDetailPage.SelectedPin = selectedPin;
             NavigationService.Navigate(new Uri("/Views/PinDetailPage.xaml", UriKind.Relative));
@@ -244,6 +426,20 @@ namespace MetroPinry
             NavigationService.Navigate(new Uri("/Views/BoardDetailsPage.xaml", UriKind.Relative));
         }
 
+        private void OnMyBoardSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selector = sender as LongListSelector;
+            if (selector == null || selector.SelectedItem == null) return;
+
+            var board = selector.SelectedItem as Board;
+            selector.SelectedItem = null;
+
+            if (board == null) return;
+
+            BoardDetailsPage.SelectedBoard = board;
+            NavigationService.Navigate(new Uri("/Views/BoardDetailsPage.xaml", UriKind.Relative));
+        }
+
         private async void OnRefreshAppBarClick(object sender, EventArgs e)
         {
             await App.ViewModel.LoadDataAsync();
@@ -256,21 +452,62 @@ namespace MetroPinry
 
         private void MainPanorama_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ApplicationBar != null && ApplicationBar.Buttons.Count > 0)
+            if (!_isPageLoaded || ApplicationBar == null) return;
+            if (MainPanorama.SelectedIndex == _lastPanoramaIndex) return;
+            _lastPanoramaIndex = MainPanorama.SelectedIndex;
+
+            UpdateAppBarButtons();
+        }
+
+        private void UpdateAppBarButtons()
+        {
+            Dispatcher.BeginInvoke(() =>
             {
-                var addButton = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
-                if (addButton != null)
+                if (ApplicationBar == null || ApplicationBar.Buttons.Count < 2) return;
+
+                var actionBtn = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
+                if (actionBtn == null) return;
+
+                switch (MainPanorama.SelectedIndex)
                 {
-                    if (MainPanorama.SelectedIndex == 1)
+                    case 1: // boards
+                        actionBtn.IconUri = new Uri("/Assets/AppBar/layot.png", UriKind.Relative);
+                        actionBtn.Text = "add board";
+                        actionBtn.IsEnabled = true;
+                        break;
+
+                    case 3: // me
+                        actionBtn.IconUri = new Uri("/Assets/AppBar/smiley.kiki.png", UriKind.Relative);
+                        actionBtn.Text = "accounts";
+                        actionBtn.IsEnabled = true;
+                        break;
+
+                    default: // feed & search
+                        actionBtn.IconUri = new Uri("/Assets/AppBar/pin.png", UriKind.Relative);
+                        actionBtn.Text = "add pin";
+                        actionBtn.IsEnabled = true;
+                        break;
+                }
+
+                var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
+                if (settings.Contains("IsGuest") && (bool)settings["IsGuest"])
+                {
+                    if (MainPanorama.SelectedIndex != 3)
                     {
-                        addButton.Text = "add board";
-                    }
-                    else
-                    {
-                        addButton.Text = "add pin";
+                        actionBtn.IsEnabled = false;
                     }
                 }
-            }
+            });
+        }
+
+        private void OnAccountsAppBarClick(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/Views/AccountsPage.xaml", UriKind.Relative));
+        }
+
+        private void OnAddAccountMenuClick(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/Views/LoginPage.xaml?mode=add", UriKind.Relative));
         }
 
         private void OnAddAppBarClick(object sender, EventArgs e)
@@ -280,111 +517,15 @@ namespace MetroPinry
                 NewBoardPage.BoardToEdit = null;
                 NavigationService.Navigate(new Uri("/Views/NewBoardPage.xaml", UriKind.Relative));
             }
+            else if (MainPanorama.SelectedIndex == 3)
+            {
+                NavigationService.Navigate(new Uri("/Views/AccountsPage.xaml", UriKind.Relative));
+            }
             else
             {
                 NewPinPage.PinToEdit = null;
                 NewPinPage.PreselectedBoard = null;
                 NavigationService.Navigate(new Uri("/Views/NewPinPage.xaml", UriKind.Relative));
-            }
-        }
-
-        private void OnEditBoardContextClick(object sender, RoutedEventArgs e)
-        {
-            var menuItem = sender as MenuItem;
-            if (menuItem == null) return;
-
-            var board = menuItem.DataContext as Board;
-            if (board == null) return;
-
-            NewBoardPage.BoardToEdit = board;
-            NavigationService.Navigate(new Uri("/Views/NewBoardPage.xaml", UriKind.Relative));
-        }
-
-        private async void OnDeleteBoardContextClick(object sender, RoutedEventArgs e)
-        {
-            var menuItem = sender as MenuItem;
-            if (menuItem == null) return;
-
-            var board = menuItem.DataContext as Board;
-            if (board == null) return;
-
-            var result = MessageBox.Show(
-                string.Format("Удалить доску \"{0}\"? Пины останутся в вашей ленте.", board.Name),
-                "Удаление доски",
-                MessageBoxButton.OKCancel);
-
-            if (result == MessageBoxResult.OK)
-            {
-                var api = new PinryApiService();
-                bool success = await api.DeleteBoardAsync(board.Id);
-
-                if (success)
-                {
-                    App.ViewModel.Boards.Remove(board);
-                    _filteredBoards.Remove(board);
-                }
-                else
-                {
-                    MessageBox.Show("Не удалось удалить доску. Проверьте права доступа и сеть.", "Ошибка", MessageBoxButton.OK);
-                }
-            }
-        }
-
-        private void OnEditPinContextClick(object sender, RoutedEventArgs e)
-        {
-            var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
-            if (settings.Contains("IsGuest") && (bool)settings["IsGuest"])
-            {
-                MessageBox.Show("Для этого действия необходимо войти в аккаунт.");
-                return;
-            }
-            var menuItem = sender as MenuItem;
-            if (menuItem == null) return;
-
-            var pin = menuItem.DataContext as Pin;
-            if (pin == null) return;
-
-            NewPinPage.PinToEdit = pin;
-            NewPinPage.PreselectedBoard = null;
-            NavigationService.Navigate(new Uri("/Views/NewPinPage.xaml", UriKind.Relative));
-        }
-
-        private async void OnDeletePinContextClick(object sender, RoutedEventArgs e)
-        {
-            var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
-            if (settings.Contains("IsGuest") && (bool)settings["IsGuest"])
-            {
-                MessageBox.Show("Для этого действия необходимо войти в аккаунт.");
-                return;
-            }
-            var menuItem = sender as MenuItem;
-            if (menuItem == null) return;
-
-            var pin = menuItem.DataContext as Pin;
-            if (pin == null) return;
-
-            var result = MessageBox.Show("Удалить этот пин навсегда?", "Удаление пина", MessageBoxButton.OKCancel);
-            if (result == MessageBoxResult.OK)
-            {
-                var api = new PinryApiService();
-                bool success = await api.DeletePinAsync(pin.Id);
-
-                if (success)
-                {
-                    if (App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Contains(pin))
-                    {
-                        App.ViewModel.RecentPins.Remove(pin);
-                    }
-                    if (App.ViewModel.UserPins != null && App.ViewModel.UserPins.Contains(pin))
-                    {
-                        App.ViewModel.UserPins.Remove(pin);
-                    }
-                    _filteredPins.Remove(pin);
-                }
-                else
-                {
-                    MessageBox.Show("Не удалось удалить пин.", "Ошибка", MessageBoxButton.OK);
-                }
             }
         }
 
@@ -409,8 +550,8 @@ namespace MetroPinry
             if (result == MessageBoxResult.OK)
             {
                 StorageService.AuthToken = null;
+                StorageService.ServerUrl = null;
 
-                // Удаляем статус гостя
                 if (settings.Contains("IsGuest"))
                 {
                     settings.Remove("IsGuest");
@@ -420,10 +561,27 @@ namespace MetroPinry
                 App.ViewModel.RecentPins.Clear();
                 App.ViewModel.Boards.Clear();
                 App.ViewModel.UserPins.Clear();
+                App.ViewModel.UserBoardsWithAll.Clear();
                 App.ViewModel.CurrentUser = null;
 
-                // Убедитесь, что путь к LoginPage указан верно (в папке /Views/ или в корне)
                 NavigationService.Navigate(new Uri("/Views/LoginPage.xaml", UriKind.Relative));
+            }
+        }
+
+        private async void FeedList_ItemRealized(object sender, ItemRealizationEventArgs e)
+        {
+            if (App.ViewModel.IsLoadingMore) return;
+
+            var pin = e.Container.Content as Pin;
+            if (pin != null && App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Count > 0)
+            {
+                int total = App.ViewModel.RecentPins.Count;
+                int currentIdx = App.ViewModel.RecentPins.IndexOf(pin);
+
+                if (currentIdx >= total - 3)
+                {
+                    await App.ViewModel.LoadMorePinsAsync();
+                }
             }
         }
     }

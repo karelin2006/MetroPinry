@@ -25,7 +25,6 @@ namespace MetroPinry.Views
         private List<string> _allAvailableTags = new List<string>();
         private bool _isUpdatingTagsText = false;
 
-        // Фиктивный элемент для выбора "без доски"
         private static readonly Board NoneBoardOption = new Board { Id = 0, Name = "(none)" };
 
         public NewPinPage()
@@ -41,27 +40,31 @@ namespace MetroPinry.Views
         {
             base.OnNavigatedTo(e);
 
-            // Если страница возобновляется после выбора фото из системной галереи — пропускаем
             if (e.NavigationMode == NavigationMode.Refresh)
             {
                 return;
             }
 
-            // 1. Инициализация списка досок
+            // 1. Инициализация списка досок: ТОЛЬКО СВОИ ДОСКИ
             if (PreselectedBoard != null)
             {
-                // Принудительная привязка к конкретной доске при создании с экрана доски
                 BoardPicker.ItemsSource = new List<Board> { PreselectedBoard };
                 BoardPicker.SelectedItem = PreselectedBoard;
                 BoardPicker.IsEnabled = false;
+
+                // Наследуем скрытность предвыбранной доски
+                if (PinToEdit == null && PreselectedBoard.IsPrivate)
+                {
+                    ChkIsPrivate.IsChecked = true;
+                }
             }
             else
             {
-                // Собираем список: первым идет пункт "(none)", затем остальные доски
                 var availableBoards = new List<Board> { NoneBoardOption };
-                if (App.ViewModel.Boards != null && App.ViewModel.Boards.Count > 0)
+                if (App.ViewModel.Boards != null)
                 {
-                    availableBoards.AddRange(App.ViewModel.Boards);
+                    // Исключаем чужие доски, куда запись запрещена сервером
+                    availableBoards.AddRange(App.ViewModel.Boards.Where(b => b.IsMine));
                 }
 
                 BoardPicker.ItemsSource = availableBoards;
@@ -75,7 +78,7 @@ namespace MetroPinry.Views
                 }
                 else if (BoardPicker.SelectedItem == null)
                 {
-                    BoardPicker.SelectedIndex = 0; // По умолчанию выбран (none)
+                    BoardPicker.SelectedIndex = 0;
                 }
             }
 
@@ -92,9 +95,10 @@ namespace MetroPinry.Views
                     TxtTags.Text = string.Join(", ", PinToEdit.Tags);
                 }
 
-                if (PinToEdit.DisplayThumbnailUrl != null)
+                Uri thumbUri = PinToEdit.DisplayThumbnailUrl ?? PinToEdit.DisplayStandardUrl;
+                if (thumbUri != null)
                 {
-                    ImagePreview.Source = new BitmapImage(PinToEdit.DisplayThumbnailUrl);
+                    ImagePreview.Source = new BitmapImage(thumbUri);
                     ImagePreview.Visibility = Visibility.Visible;
                     PlaceholderText.Visibility = Visibility.Collapsed;
                 }
@@ -103,11 +107,10 @@ namespace MetroPinry.Views
                 BtnPickImage.IsEnabled = false;
                 BtnClearImage.Visibility = Visibility.Collapsed;
 
-                // Проверяем принадлежность доске среди существующих
                 bool foundBoard = false;
                 if (App.ViewModel.Boards != null)
                 {
-                    foreach (var b in App.ViewModel.Boards)
+                    foreach (var b in App.ViewModel.Boards.Where(x => x.IsMine))
                     {
                         if (PinToEdit.BelongsToBoard(b.Id, b.Name))
                         {
@@ -130,7 +133,9 @@ namespace MetroPinry.Views
                 UpdateImageSourceControls();
             }
 
-            // 3. Загрузка базы подсказок тегов
+            // Подписка на изменение доски для автонаследования приватности
+            BoardPicker.SelectionChanged += OnBoardPickerSelectionChanged;
+
             LoadAvailableTags();
         }
 
@@ -138,10 +143,34 @@ namespace MetroPinry.Views
         {
             base.OnNavigatedFrom(e);
 
+            BoardPicker.SelectionChanged -= OnBoardPickerSelectionChanged;
+
             if (e.NavigationMode == NavigationMode.Back)
             {
+                DisposeImageStream();
                 PinToEdit = null;
                 PreselectedBoard = null;
+            }
+        }
+
+        private void OnBoardPickerSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PinToEdit != null) return;
+
+            var chosen = BoardPicker.SelectedItem as Board;
+            if (chosen != null && chosen.Id > 0 && chosen.IsPrivate)
+            {
+                // Если выбрана приватная доска — пин автоматически скрывается
+                ChkIsPrivate.IsChecked = true;
+            }
+        }
+
+        private void DisposeImageStream()
+        {
+            if (_selectedImageStream != null)
+            {
+                _selectedImageStream.Dispose();
+                _selectedImageStream = null;
             }
         }
 
@@ -227,7 +256,6 @@ namespace MetroPinry.Views
             }
 
             TxtTags.SelectionStart = TxtTags.Text.Length;
-
             _isUpdatingTagsText = false;
 
             TagsPopupBorder.Visibility = Visibility.Collapsed;
@@ -245,11 +273,7 @@ namespace MetroPinry.Views
             {
                 try
                 {
-                    if (_selectedImageStream != null)
-                    {
-                        _selectedImageStream.Dispose();
-                        _selectedImageStream = null;
-                    }
+                    DisposeImageStream();
 
                     var memoryStream = new MemoryStream();
                     e.ChosenPhoto.CopyTo(memoryStream);
@@ -276,11 +300,7 @@ namespace MetroPinry.Views
 
         private void OnClearImageClick(object sender, RoutedEventArgs e)
         {
-            if (_selectedImageStream != null)
-            {
-                _selectedImageStream.Dispose();
-                _selectedImageStream = null;
-            }
+            DisposeImageStream();
 
             ImagePreview.Source = null;
             ImagePreview.Visibility = Visibility.Collapsed;
@@ -293,14 +313,10 @@ namespace MetroPinry.Views
         {
             if (PinToEdit != null) return;
 
-            string url = TxtImageUrl.Text.Trim();
+            string url = TxtImageUrl.Text != null ? TxtImageUrl.Text.Trim() : string.Empty;
             if (Uri.IsWellFormedUriString(url, UriKind.Absolute))
             {
-                if (_selectedImageStream != null)
-                {
-                    _selectedImageStream.Dispose();
-                    _selectedImageStream = null;
-                }
+                DisposeImageStream();
                 ImagePreview.Source = new BitmapImage(new Uri(url, UriKind.Absolute));
                 ImagePreview.Visibility = Visibility.Visible;
                 PlaceholderText.Visibility = Visibility.Collapsed;
@@ -320,15 +336,14 @@ namespace MetroPinry.Views
             if (PinToEdit != null) return;
 
             bool hasLocalFile = _selectedImageStream != null;
-
             TxtImageUrl.IsEnabled = !hasLocalFile;
             BtnClearImage.Visibility = hasLocalFile ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private async void OnSaveAppBarClick(object sender, EventArgs e)
         {
-            string url = TxtImageUrl.Text.Trim();
-            string desc = TxtDescription.Text.Trim();
+            string url = TxtImageUrl.Text != null ? TxtImageUrl.Text.Trim() : string.Empty;
+            string desc = TxtDescription.Text != null ? TxtDescription.Text.Trim() : string.Empty;
             string rawTags = TxtTags.Text != null ? TxtTags.Text.Trim() : string.Empty;
             bool isPrivate = ChkIsPrivate.IsChecked ?? false;
 
@@ -338,49 +353,18 @@ namespace MetroPinry.Views
                 return;
             }
 
-            // Определение выбранной доски (может быть (none) или null)
             var selectedBoard = PreselectedBoard ?? (BoardPicker.SelectedItem as Board);
-
-            var boardsList = new List<string>();
-            int? targetBoardId = null;
-
-            if (selectedBoard != null && selectedBoard.Id > 0 && !string.IsNullOrEmpty(selectedBoard.Name))
-            {
-                boardsList.Add(selectedBoard.Name);
-                targetBoardId = selectedBoard.Id;
-            }
+            int? targetBoardId = (selectedBoard != null && selectedBoard.Id > 0) ? selectedBoard.Id : (int?)null;
 
             var tagsList = new List<string>();
             if (!string.IsNullOrEmpty(rawTags))
             {
-                if (rawTags.Contains(",") || rawTags.Contains(";"))
+                char[] separators = new char[] { ',', ';', ' ' };
+                var split = rawTags.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var tag in split)
                 {
-                    var split = rawTags.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var tag in split)
-                    {
-                        string cleaned = tag.Trim().TrimStart('#').Trim();
-                        if (!string.IsNullOrEmpty(cleaned) && !tagsList.Contains(cleaned))
-                        {
-                            tagsList.Add(cleaned);
-                        }
-                    }
-                }
-                else if (rawTags.Contains("#"))
-                {
-                    var split = rawTags.Split(new[] { '#' }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var tag in split)
-                    {
-                        string cleaned = tag.Trim();
-                        if (!string.IsNullOrEmpty(cleaned) && !tagsList.Contains(cleaned))
-                        {
-                            tagsList.Add(cleaned);
-                        }
-                    }
-                }
-                else
-                {
-                    string cleaned = rawTags.Trim();
-                    if (!string.IsNullOrEmpty(cleaned))
+                    string cleaned = tag.Trim().TrimStart('#').Trim();
+                    if (!string.IsNullOrEmpty(cleaned) && !tagsList.Contains(cleaned))
                     {
                         tagsList.Add(cleaned);
                     }
@@ -392,14 +376,13 @@ namespace MetroPinry.Views
             bool success = false;
             var apiService = new PinryApiService();
 
-            // 1. Редактирование существующего пина
             if (PinToEdit != null)
             {
                 success = await apiService.UpdatePinAsync(
-                    PinToEdit.Id,
-                    desc,
-                    tagsList,
-                    isPrivate,
+                    pinId: PinToEdit.Id,
+                    desc: desc,
+                    tags: tagsList,
+                    isPrivate: isPrivate,
                     targetBoardId: targetBoardId);
 
                 if (success)
@@ -408,12 +391,9 @@ namespace MetroPinry.Views
                     PinToEdit.Tags = tagsList;
                     PinToEdit.IsPrivate = isPrivate;
 
-                    if (targetBoardId.HasValue && targetBoardId.Value > 0)
+                    if (targetBoardId.HasValue)
                     {
-                        if (PinToEdit.Boards == null)
-                        {
-                            PinToEdit.Boards = new List<object>();
-                        }
+                        if (PinToEdit.Boards == null) PinToEdit.Boards = new List<object>();
                         if (!PinToEdit.Boards.Contains(targetBoardId.Value))
                         {
                             PinToEdit.Boards.Add(targetBoardId.Value);
@@ -421,17 +401,16 @@ namespace MetroPinry.Views
                     }
                 }
             }
-            // 2. Создание нового пина
             else
             {
                 if (!string.IsNullOrEmpty(url))
                 {
                     success = await apiService.CreatePinFromUrlAsync(
-                        url,
-                        desc,
-                        boardsList,
-                        tagsList,
-                        isPrivate,
+                        url: url,
+                        desc: desc,
+                        boardsList: null,
+                        tagsList: tagsList,
+                        isPrivate: isPrivate,
                         targetBoardId: targetBoardId);
                 }
                 else if (_selectedImageStream != null)
@@ -440,12 +419,13 @@ namespace MetroPinry.Views
                     {
                         _selectedImageStream.Position = 0;
                     }
+
                     success = await apiService.UploadPinImageAsync(
-                        _selectedImageStream,
-                        desc,
-                        boardsList,
-                        tagsList,
-                        isPrivate,
+                        imageStream: _selectedImageStream,
+                        desc: desc,
+                        boardsList: null,
+                        tagsList: tagsList,
+                        isPrivate: isPrivate,
                         targetBoardId: targetBoardId);
                 }
             }
@@ -454,8 +434,10 @@ namespace MetroPinry.Views
 
             if (success)
             {
+                DisposeImageStream();
                 PinToEdit = null;
                 PreselectedBoard = null;
+                App.ViewModel.IsDataLoaded = false;
                 await App.ViewModel.LoadDataAsync();
                 NavigationService.GoBack();
             }
@@ -467,11 +449,11 @@ namespace MetroPinry.Views
 
         private void SetLoadingState(bool isLoading)
         {
-            var progress = Resources.Contains("ProgressIndicator") ? (ProgressIndicator)Resources["ProgressIndicator"] : null;
-            if (progress != null)
+            var indicator = SystemTray.ProgressIndicator;
+            if (indicator != null)
             {
-                SystemTray.SetProgressIndicator(this, progress);
-                progress.IsVisible = isLoading;
+                indicator.IsVisible = isLoading;
+                indicator.Text = isLoading ? "сохранение..." : "MetroPinry";
             }
 
             if (ApplicationBar != null)
@@ -493,6 +475,7 @@ namespace MetroPinry.Views
 
         private void OnCancelAppBarClick(object sender, EventArgs e)
         {
+            DisposeImageStream();
             PinToEdit = null;
             PreselectedBoard = null;
             NavigationService.GoBack();

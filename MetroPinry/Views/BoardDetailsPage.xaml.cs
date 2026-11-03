@@ -31,7 +31,13 @@ namespace MetroPinry.Views
             if (SelectedBoard != null)
             {
                 UpdateBoardHeader();
-                await LoadPinsAsync();
+                ConfigureAppBar();
+
+                // Загружаем данные только при первичном входе на страницу, не перезагружая при возврате назад
+                if (e.NavigationMode != NavigationMode.Back)
+                {
+                    await LoadPinsAsync();
+                }
             }
             else
             {
@@ -42,53 +48,95 @@ namespace MetroPinry.Views
             }
         }
 
+        private async System.Threading.Tasks.Task LoadPinsAsync()
+        {
+            if (SelectedBoard == null) return;
+
+            SetProgress(true);
+
+            // 1. Виртуальная доска "all" (все пины пользователя)
+            if (SelectedBoard.Id == -1)
+            {
+                _boardPins.Clear();
+                if (App.ViewModel.UserPins != null)
+                {
+                    foreach (var pin in App.ViewModel.UserPins)
+                    {
+                        _boardPins.Add(pin);
+                    }
+                }
+                SetProgress(false);
+                return;
+            }
+
+            // 2. Реальная доска Pinry
+            try
+            {
+                var api = new PinryApiService();
+                var resp = await api.GetBoardPinsAsync(SelectedBoard.Id, SelectedBoard.Name);
+
+                Dispatcher.BeginInvoke(() =>
+                {
+                    _boardPins.Clear();
+                    if (resp != null && resp.Results != null)
+                    {
+                        Debug.WriteLine("ADDING PINS TO BOARD VIEW: " + resp.Results.Count);
+                        foreach (var pin in resp.Results)
+                        {
+                            _boardPins.Add(pin);
+                        }
+                    }
+                    SetProgress(false);
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("LOAD BOARD PINS ERROR: " + ex.Message);
+                Dispatcher.BeginInvoke(() => SetProgress(false));
+            }
+        }
+
+        private void SetProgress(bool isVisible)
+        {
+            if (BoardProgress != null)
+            {
+                BoardProgress.IsVisible = isVisible;
+            }
+        }
+
         private void UpdateBoardHeader()
         {
             if (SelectedBoard == null) return;
 
             BoardTitle.Text = SelectedBoard.Name;
 
-            if (SelectedBoard.IsPrivate)
-            {
-                BoardVisibilityIcon.Text = "\uE1F6"; // Замочек
-            }
-            else
-            {
-                BoardVisibilityIcon.Text = "\uE12B"; // Глобус
-            }
+            // \uE1F6 — замок, \uE12B — глобус
+            BoardVisibilityIcon.Text = SelectedBoard.IsPrivate ? "\uE1F6" : "\uE12B";
         }
 
-        private async System.Threading.Tasks.Task LoadPinsAsync()
+        private void ConfigureAppBar()
         {
-            if (SelectedBoard == null) return;
+            if (ApplicationBar == null || SelectedBoard == null) return;
 
-            BoardProgress.IsVisible = true;
-            var api = new PinryApiService();
-            var resp = await api.GetBoardPinsAsync(SelectedBoard.Id, SelectedBoard.Name);
-            BoardProgress.IsVisible = false;
+            bool isVirtual = (SelectedBoard.Id == -1);
 
-            System.Windows.Deployment.Current.Dispatcher.BeginInvoke(() =>
+            foreach (var button in ApplicationBar.Buttons.OfType<ApplicationBarIconButton>())
             {
-                _boardPins.Clear();
-                if (resp != null && resp.Results != null)
+                string txt = (button.Text ?? string.Empty).ToLowerInvariant();
+                if (txt.Contains("edit") || txt.Contains("delete"))
                 {
-                    Debug.WriteLine("ADDING PINS TO BOARD VIEW: " + resp.Results.Count);
-                    foreach (var pin in resp.Results)
-                    {
-                        // Наполняем свойство Boards вручную, так как API Pinry не отдает его в объекте Pin
-                        if (pin.Boards == null)
-                        {
-                            pin.Boards = new List<object>();
-                        }
-                        if (!pin.BelongsToBoard(SelectedBoard.Id, SelectedBoard.Name))
-                        {
-                            pin.Boards.Add(SelectedBoard.Id);
-                        }
-
-                        _boardPins.Add(pin);
-                    }
+                    button.IsEnabled = !isVirtual && SelectedBoard.IsMine;
                 }
-            });
+            }
+
+            foreach (var item in ApplicationBar.MenuItems.OfType<ApplicationBarMenuItem>())
+            {
+                string txt = (item.Text ?? string.Empty).ToLowerInvariant();
+                if (txt.Contains("edit") || txt.Contains("delete"))
+                {
+                    item.IsEnabled = !isVirtual && SelectedBoard.IsMine;
+                }
+            }
         }
 
         private void OnPinSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -103,27 +151,25 @@ namespace MetroPinry.Views
             NavigationService.Navigate(new Uri("/Views/PinDetailPage.xaml", UriKind.Relative));
         }
 
-        // Добавление нового пина строго на текущую доску
         private void OnAddPinToBoardAppBarClick(object sender, EventArgs e)
         {
             if (SelectedBoard == null) return;
 
             NewPinPage.PinToEdit = null;
-            NewPinPage.PreselectedBoard = SelectedBoard;
+            // Если доска "all", передаем null, чтобы пользователь выбрал конкретную доску вручную
+            NewPinPage.PreselectedBoard = (SelectedBoard.Id == -1) ? null : SelectedBoard;
 
             NavigationService.Navigate(new Uri("/Views/NewPinPage.xaml", UriKind.Relative));
         }
 
-        // Редактирование текущей доски
         private void OnEditBoardAppBarClick(object sender, EventArgs e)
         {
-            if (SelectedBoard == null) return;
+            if (SelectedBoard == null || SelectedBoard.Id == -1) return;
 
             NewBoardPage.BoardToEdit = SelectedBoard;
             NavigationService.Navigate(new Uri("/Views/NewBoardPage.xaml", UriKind.Relative));
         }
 
-        // Контекстное меню пина: Редактировать
         private void OnEditPinContextClick(object sender, RoutedEventArgs e)
         {
             var menuItem = sender as MenuItem;
@@ -136,7 +182,6 @@ namespace MetroPinry.Views
             NavigationService.Navigate(new Uri("/Views/NewPinPage.xaml", UriKind.Relative));
         }
 
-        // Контекстное меню пина: Удалить
         private async void OnDeletePinContextClick(object sender, RoutedEventArgs e)
         {
             var menuItem = sender as MenuItem;
@@ -155,15 +200,24 @@ namespace MetroPinry.Views
 
                 if (success)
                 {
-                    _boardPins.Remove(pin);
-                    if (App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Contains(pin))
+                    Dispatcher.BeginInvoke(() =>
                     {
-                        App.ViewModel.RecentPins.Remove(pin);
-                    }
-                    if (App.ViewModel.UserPins != null && App.ViewModel.UserPins.Contains(pin))
-                    {
-                        App.ViewModel.UserPins.Remove(pin);
-                    }
+                        _boardPins.Remove(pin);
+
+                        if (App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Contains(pin))
+                        {
+                            App.ViewModel.RecentPins.Remove(pin);
+                        }
+                        if (App.ViewModel.UserPins != null && App.ViewModel.UserPins.Contains(pin))
+                        {
+                            App.ViewModel.UserPins.Remove(pin);
+                        }
+
+                        if (SelectedBoard.PinsCount > 0)
+                        {
+                            SelectedBoard.PinsCount--;
+                        }
+                    });
                 }
                 else
                 {
@@ -179,7 +233,7 @@ namespace MetroPinry.Views
 
         private async void OnDeleteBoardAppBarClick(object sender, EventArgs e)
         {
-            if (SelectedBoard == null) return;
+            if (SelectedBoard == null || SelectedBoard.Id == -1) return;
 
             var result = MessageBox.Show(
                 string.Format("Вы действительно хотите удалить доску \"{0}\"? Пины останутся в вашей ленте, но доска будет удалена.", SelectedBoard.Name),
@@ -188,30 +242,42 @@ namespace MetroPinry.Views
 
             if (result != MessageBoxResult.OK) return;
 
-            BoardProgress.IsVisible = true;
+            SetProgress(true);
 
             var api = new PinryApiService();
             bool success = await api.DeleteBoardAsync(SelectedBoard.Id);
 
-            BoardProgress.IsVisible = false;
+            SetProgress(false);
 
             if (success)
             {
-                if (App.ViewModel.Boards != null)
+                Dispatcher.BeginInvoke(() =>
                 {
-                    var boardInVm = App.ViewModel.Boards.FirstOrDefault(b => b.Id == SelectedBoard.Id);
-                    if (boardInVm != null)
+                    if (App.ViewModel.Boards != null)
                     {
-                        App.ViewModel.Boards.Remove(boardInVm);
+                        var boardInVm = App.ViewModel.Boards.FirstOrDefault(b => b.Id == SelectedBoard.Id);
+                        if (boardInVm != null)
+                        {
+                            App.ViewModel.Boards.Remove(boardInVm);
+                        }
                     }
-                }
 
-                SelectedBoard = null;
+                    if (App.ViewModel.UserBoardsWithAll != null)
+                    {
+                        var boardInUserList = App.ViewModel.UserBoardsWithAll.FirstOrDefault(b => b.Id == SelectedBoard.Id);
+                        if (boardInUserList != null)
+                        {
+                            App.ViewModel.UserBoardsWithAll.Remove(boardInUserList);
+                        }
+                    }
 
-                if (NavigationService.CanGoBack)
-                {
-                    NavigationService.GoBack();
-                }
+                    SelectedBoard = null;
+
+                    if (NavigationService.CanGoBack)
+                    {
+                        NavigationService.GoBack();
+                    }
+                });
             }
             else
             {

@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Linq;
 using System.Windows;
-using Microsoft.Phone.Controls;
-using System.Windows.Navigation;
 using System.Windows.Controls;
+using System.Windows.Navigation;
+using Microsoft.Phone.Controls;
+using Microsoft.Phone.Shell;
+using MetroPinry.Models;
+using MetroPinry.Services;
 
 namespace MetroPinry.Views
 {
@@ -16,20 +20,127 @@ namespace MetroPinry.Views
             InitializeComponent();
         }
 
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            bool isAddMode = NavigationContext.QueryString.ContainsKey("mode") && NavigationContext.QueryString["mode"] == "add";
+
+            if (e.NavigationMode == NavigationMode.New)
+            {
+                if (!isAddMode)
+                {
+                    while (NavigationService.CanGoBack)
+                    {
+                        NavigationService.RemoveBackEntry();
+                    }
+                }
+                else
+                {
+                    ServerUrlBox.Text = "https://";
+                    UsernameBox.Text = string.Empty;
+                    PasswordBox.Password = string.Empty;
+                    PasswordRepeatBox.Password = string.Empty;
+                    EmailBox.Text = string.Empty;
+                    TokenBox.Text = string.Empty;
+                }
+            }
+
+            RefreshSavedAccountsList(isAddMode);
+        }
+
+        private void RefreshSavedAccountsList(bool isAddMode)
+        {
+            var accounts = StorageService.Accounts;
+            if (accounts != null && accounts.Count > 0 && !isAddMode)
+            {
+                SavedAccountsList.ItemsSource = accounts;
+                SavedAccountsSection.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                SavedAccountsList.ItemsSource = null;
+                SavedAccountsSection.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        // БЫСТРЫЙ ВХОД ПО КЛИКУ НА СОХРАНЕННЫЙ АККАУНТ
+        private async void OnSavedAccountTap(object sender, System.Windows.Input.GestureEventArgs e)
+        {
+            var element = sender as FrameworkElement;
+            if (element == null) return;
+
+            // Используем существующий PinryAccount
+            var account = element.DataContext as PinryAccount;
+            if (account == null) return;
+
+            LoginProgressBar.Visibility = Visibility.Visible;
+            ActionBtn.IsEnabled = false;
+
+            try
+            {
+                StorageService.ServerUrl = account.ServerUrl;
+                StorageService.AuthToken = account.Token;
+
+                var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
+                if (settings.Contains("IsGuest"))
+                {
+                    settings.Remove("IsGuest");
+                    settings.Save();
+                }
+
+                var apiService = new PinryApiService();
+                var profile = await apiService.GetCurrentUserAsync();
+
+                if (profile != null)
+                {
+                    StorageService.SaveOrUpdateAccount(account.ServerUrl, profile.Username, account.Token, profile.GravatarHash);
+                    await StorageService.DownloadAndSaveAvatarAsync(profile.Username, profile.GravatarHash);
+
+                    NavigateToMainAfterAuth();
+                }
+                else
+                {
+                    StorageService.AuthToken = null;
+                    MessageBox.Show("Не удалось войти в этот аккаунт. Возможно, токен устарел или сервер временно недоступен.", "Ошибка входа", MessageBoxButton.OK);
+                }
+            }
+            catch (Exception ex)
+            {
+                StorageService.AuthToken = null;
+                MessageBox.Show("Ошибка входа: " + ex.Message, "Ошибка", MessageBoxButton.OK);
+            }
+            finally
+            {
+                LoginProgressBar.Visibility = Visibility.Collapsed;
+                ActionBtn.IsEnabled = true;
+            }
+        }
+
         private async void OnActionBtnClick(object sender, RoutedEventArgs e)
         {
-            string serverUrl = ServerUrlBox.Text;
-            string username = UsernameBox.Text;
-            string password = PasswordBox.Password;
-            string passwordRepeat = PasswordRepeatBox.Password;
-            string email = EmailBox.Text;
-            string token = TokenBox.Text;
+            this.Focus();
 
-            if (string.IsNullOrWhiteSpace(serverUrl))
+            string serverUrl = ServerUrlBox.Text != null ? ServerUrlBox.Text.Trim() : string.Empty;
+
+            if (string.IsNullOrWhiteSpace(serverUrl) || serverUrl == "https://" || serverUrl == "http://")
             {
                 MessageBox.Show("Введите адрес сервера.");
                 return;
             }
+
+            if (!serverUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !serverUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                serverUrl = "https://" + serverUrl;
+                ServerUrlBox.Text = serverUrl;
+            }
+
+            string username = UsernameBox.Text != null ? UsernameBox.Text.Trim() : string.Empty;
+            string password = PasswordBox.Password;
+            string passwordRepeat = PasswordRepeatBox.Password;
+            string email = EmailBox.Text != null ? EmailBox.Text.Trim() : string.Empty;
+            string token = TokenBox.Text != null ? TokenBox.Text.Trim() : string.Empty;
 
             if (_isTokenMode)
             {
@@ -59,38 +170,56 @@ namespace MetroPinry.Views
 
             try
             {
-                var apiService = new Services.PinryApiService();
+                var apiService = new PinryApiService();
+
+                var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
+                if (settings.Contains("IsGuest"))
+                {
+                    settings.Remove("IsGuest");
+                    settings.Save();
+                }
 
                 if (_isTokenMode)
                 {
-                    Services.StorageService.ServerUrl = serverUrl;
-                    Services.StorageService.AuthToken = token;
+                    StorageService.ServerUrl = serverUrl;
+                    StorageService.AuthToken = token;
 
                     var profile = await apiService.GetCurrentUserAsync();
                     if (profile != null)
                     {
                         isSuccess = true;
+                        StorageService.SaveOrUpdateAccount(serverUrl, profile.Username, token, profile.GravatarHash);
+                        await StorageService.DownloadAndSaveAvatarAsync(profile.Username, profile.GravatarHash);
                     }
                     else
                     {
-                        Services.StorageService.AuthToken = null;
+                        StorageService.AuthToken = null;
                         throw new Exception("Неверный токен или сервер недоступен.");
                     }
                 }
                 else if (_isRegisterMode)
                 {
-                    // Обязательно добавьте passwordRepeat как 5-й параметр в вашем PinryApiService.cs
                     bool registered = await apiService.RegisterWithCredentialsAsync(serverUrl, username, email, password, passwordRepeat);
                     if (registered)
                     {
                         var profile = await apiService.LoginWithCredentialsAsync(serverUrl, username, password);
-                        isSuccess = (profile != null);
+                        if (profile != null)
+                        {
+                            isSuccess = true;
+                            StorageService.SaveOrUpdateAccount(serverUrl, profile.Username, profile.Token, profile.GravatarHash);
+                            await StorageService.DownloadAndSaveAvatarAsync(profile.Username, profile.GravatarHash);
+                        }
                     }
                 }
                 else
                 {
                     var profile = await apiService.LoginWithCredentialsAsync(serverUrl, username, password);
-                    isSuccess = (profile != null);
+                    if (profile != null)
+                    {
+                        isSuccess = true;
+                        StorageService.SaveOrUpdateAccount(serverUrl, profile.Username, profile.Token, profile.GravatarHash);
+                        await StorageService.DownloadAndSaveAvatarAsync(profile.Username, profile.GravatarHash);
+                    }
                 }
             }
             catch (Exception ex)
@@ -105,21 +234,33 @@ namespace MetroPinry.Views
 
             if (isSuccess)
             {
-                if (NavigationService.CanGoBack)
-                {
-                    NavigationService.GoBack();
-                }
-                else
-                {
-                    NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));
-                }
+                NavigateToMainAfterAuth();
+            }
+        }
+
+        private void NavigateToMainAfterAuth()
+        {
+            App.ViewModel.UserPins.Clear();
+            App.ViewModel.RecentPins.Clear();
+            App.ViewModel.Boards.Clear();
+            App.ViewModel.UserBoardsWithAll.Clear();
+            App.ViewModel.CurrentUser = null;
+            App.ViewModel.IsDataLoaded = false;
+
+            if (NavigationService.CanGoBack)
+            {
+                NavigationService.GoBack();
+            }
+            else
+            {
+                NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));
             }
         }
 
         private void OnToggleModeClick(object sender, EventArgs e)
         {
             _isRegisterMode = !_isRegisterMode;
-            var toggleMenu = (Microsoft.Phone.Shell.ApplicationBarMenuItem)ApplicationBar.MenuItems[0];
+            var toggleMenu = (ApplicationBarMenuItem)ApplicationBar.MenuItems[0];
 
             if (_isRegisterMode)
             {
@@ -142,7 +283,7 @@ namespace MetroPinry.Views
         private void OnSwitchAuthModeClick(object sender, EventArgs e)
         {
             _isTokenMode = !_isTokenMode;
-            var tokenMenu = (Microsoft.Phone.Shell.ApplicationBarMenuItem)ApplicationBar.MenuItems[1];
+            var tokenMenu = (ApplicationBarMenuItem)ApplicationBar.MenuItems[1];
 
             if (_isTokenMode)
             {
@@ -168,8 +309,13 @@ namespace MetroPinry.Views
 
         private void OnGuestModeClick(object sender, EventArgs e)
         {
-            string serverUrl = ServerUrlBox.Text;
-            if (string.IsNullOrWhiteSpace(serverUrl))
+            string serverUrl = ServerUrlBox.Text != null ? ServerUrlBox.Text.Trim() : string.Empty;
+            if (!string.IsNullOrWhiteSpace(serverUrl) && !serverUrl.StartsWith("http://") && !serverUrl.StartsWith("https://"))
+            {
+                serverUrl = "https://" + serverUrl;
+                ServerUrlBox.Text = serverUrl;
+            }
+            if (string.IsNullOrWhiteSpace(serverUrl) || serverUrl == "https://" || serverUrl == "http://")
             {
                 MessageBox.Show("Укажите адрес сервера для просмотра.");
                 return;
@@ -179,8 +325,15 @@ namespace MetroPinry.Views
             settings["IsGuest"] = true;
             settings.Save();
 
-            Services.StorageService.AuthToken = null;
-            Services.StorageService.ServerUrl = serverUrl;
+            StorageService.AuthToken = null;
+            StorageService.ServerUrl = serverUrl;
+
+            App.ViewModel.UserPins.Clear();
+            App.ViewModel.RecentPins.Clear();
+            App.ViewModel.Boards.Clear();
+            App.ViewModel.UserBoardsWithAll.Clear();
+            App.ViewModel.CurrentUser = null;
+            App.ViewModel.IsDataLoaded = false;
 
             Dispatcher.BeginInvoke(() =>
             {
@@ -188,17 +341,9 @@ namespace MetroPinry.Views
             });
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        private void OnManageAccountsClick(object sender, EventArgs e)
         {
-            base.OnNavigatedTo(e);
-
-            if (e.NavigationMode == System.Windows.Navigation.NavigationMode.New)
-            {
-                while (NavigationService.CanGoBack)
-                {
-                    NavigationService.RemoveBackEntry();
-                }
-            }
+            NavigationService.Navigate(new Uri("/Views/AccountsPage.xaml", UriKind.Relative));
         }
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
