@@ -6,7 +6,7 @@
     <Language code="ru" />
     <Language code="ru-RU" />
   </Languages>
-  <App xmlns="" ProductID="{61be0632-292f-46d3-b317-8e3d7ce66dd6}" Title="MetroPinry" RuntimeType="Silverlight" Version="1.0.0.0" Genre="apps.normal" Author="Igor Karelin" Description="Client Pinry for windows phone 8.1" SDOptOut="false" BackUpOptOut="false" Publisher="MetroPinry" PublisherID="{c89b3c8c-9e2c-40b2-91ea-822a2ef7cf27}" NotificationService="MPN">
+  <App xmlns="" ProductID="{61be0632-292f-46d3-b317-8e3d7ce66dd6}" Title="MetroPinry" RuntimeType="Silverlight" Version="1.0.0.1" Genre="apps.normal" Author="Igor Karelin" Description="Client Pinry for windows phone 8.1" SDOptOut="false" BackUpOptOut="false" Publisher="MetroPinry" PublisherID="{c89b3c8c-9e2c-40b2-91ea-822a2ef7cf27}" NotificationService="MPN">
     <IconPath IsRelative="true" IsResource="false">Assets\Tiles\FlipCycleTileSmall.png</IconPath>
     <Capabilities>
       <Capability Name="ID_CAP_NETWORKING" />
