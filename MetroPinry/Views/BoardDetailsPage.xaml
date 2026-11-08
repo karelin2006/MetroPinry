@@ -12,7 +12,10 @@
     shell:SystemTray.IsVisible="True">
 
     <shell:SystemTray.ProgressIndicator>
-        <shell:ProgressIndicator x:Name="BoardProgress" IsVisible="False" IsIndeterminate="True" Text="загрузка доски..."/>
+        <shell:ProgressIndicator x:Name="BoardProgress" 
+                                 IsVisible="False" 
+                                 IsIndeterminate="True" 
+                                 Text="{Binding Path=LocalizedResources.LoadingImage, Source={StaticResource LocalizedStrings}}"/>
     </shell:SystemTray.ProgressIndicator>
 
     <Grid x:Name="LayoutRoot" Background="Transparent">
@@ -23,10 +26,20 @@
 
         <!-- Шапка страницы с индикатором приватности -->
         <StackPanel Grid.Row="0" Margin="18,17,0,16">
-            <TextBlock Text="board" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock Text="{Binding Path=LocalizedResources.BoardLabel, Source={StaticResource LocalizedStrings}}" 
+                       Style="{StaticResource PhoneTextNormalStyle}"/>
             <StackPanel Orientation="Horizontal" Margin="0,-7,0,0">
-                <TextBlock x:Name="BoardVisibilityIcon" FontFamily="Segoe UI Symbol" FontSize="38" Margin="0,0,8,0" VerticalAlignment="Center" Opacity="0.7"/>
-                <TextBlock x:Name="BoardTitle" Text="name" Style="{StaticResource PhoneTextTitle1Style}" Margin="0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="BoardVisibilityIcon" 
+                           FontFamily="Segoe UI Symbol" 
+                           FontSize="38" 
+                           Margin="0,0,8,0" 
+                           VerticalAlignment="Center" 
+                           Opacity="0.7"/>
+                <TextBlock x:Name="BoardTitle" 
+                           Text="name" 
+                           Style="{StaticResource PhoneTextTitle1Style}" 
+                           Margin="0" 
+                           VerticalAlignment="Center"/>
             </StackPanel>
         </StackPanel>
 
@@ -43,19 +56,28 @@
                         <!-- Контекстное меню пина -->
                         <toolkit:ContextMenuService.ContextMenu>
                             <toolkit:ContextMenu>
-                                <toolkit:MenuItem Header="edit" Click="OnEditPinContextClick"/>
-                                <toolkit:MenuItem Header="delete" Click="OnDeletePinContextClick"/>
+                                <toolkit:MenuItem Header="{Binding Path=LocalizedResources.Edit, Source={StaticResource LocalizedStrings}}" 
+                                                  Click="OnEditPinContextClick"/>
+                                <toolkit:MenuItem Header="{Binding Path=LocalizedResources.Delete, Source={StaticResource LocalizedStrings}}" 
+                                                  Click="OnDeletePinContextClick"/>
                             </toolkit:ContextMenu>
                         </toolkit:ContextMenuService.ContextMenu>
 
                         <Image Stretch="UniformToFill">
                             <Image.Source>
-                                <BitmapImage UriSource="{Binding DisplayThumbnailUrl}" CreateOptions="BackgroundCreation"/>
+                                <BitmapImage UriSource="{Binding DisplayThumbnailUrl}" 
+                                             CreateOptions="BackgroundCreation"
+                                             DecodePixelWidth="212"/>
                             </Image.Source>
                         </Image>
 
                         <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
-                            <TextBlock Text="{Binding Description}" FontSize="14" Foreground="White" MaxHeight="36" TextWrapping="Wrap" TextTrimming="WordEllipsis"/>
+                            <TextBlock Text="{Binding Description}" 
+                                       FontSize="14" 
+                                       Foreground="White" 
+                                       MaxHeight="36" 
+                                       TextWrapping="Wrap" 
+                                       TextTrimming="WordEllipsis"/>
                         </Border>
                     </Grid>
                 </DataTemplate>

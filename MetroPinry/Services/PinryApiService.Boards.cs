@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using MetroPinry.Models;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Diagnostics;
 
 namespace MetroPinry.Services
 {
@@ -25,7 +22,6 @@ namespace MetroPinry.Services
                 {
                     AttachAuthToken(client);
 
-                    // ТОЧНЫЙ запрос как в веб-интерфейсе Pinry: pins__id={boardId}
                     string url = string.Format("{0}/api/v2/pins/?format=json&ordering=-id&limit=50&offset=0&pins__id={1}&_nocache={2}",
                         GetBaseUrl(), boardId, DateTime.Now.Ticks);
 
@@ -106,23 +102,17 @@ namespace MetroPinry.Services
                     AttachAuthToken(client);
                     string url = string.Format("{0}/api/v2/boards/?format=json", GetBaseUrl());
 
-                    // Отправляем оба варианта поля: "private" и "is_private"
                     var payload = new Dictionary<string, object>
-            {
-                { "name", name },
-                { "private", isPrivate },
-                { "is_private", isPrivate }
-            };
+                    {
+                        { "name", name },
+                        { "private", isPrivate },
+                        { "is_private", isPrivate }
+                    };
 
                     string json = JsonConvert.SerializeObject(payload);
-                    System.Diagnostics.Debug.WriteLine(">>> SENDING CREATE BOARD JSON: " + json);
-
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
+
                     var response = await client.PostAsync(url, content);
-                    string responseBody = await response.Content.ReadAsStringAsync();
-
-                    System.Diagnostics.Debug.WriteLine(string.Format(">>> CREATE BOARD STATUS: {0}, RESPONSE: {1}", response.StatusCode, responseBody));
-
                     return response.IsSuccessStatusCode;
                 }
             }
@@ -140,37 +130,27 @@ namespace MetroPinry.Services
                 using (var client = new HttpClient())
                 {
                     AttachAuthToken(client);
-                    // Строго со слешем перед query-параметрами!
                     string url = string.Format("{0}/api/v2/boards/{1}/?format=json", GetBaseUrl(), boardId);
 
                     var payload = new Dictionary<string, object>
-                        {
-                            { "name", name },
-                            { "private", isPrivate },
-                            { "is_private", isPrivate }
-                        };
+                    {
+                        { "name", name },
+                        { "private", isPrivate },
+                        { "is_private", isPrivate }
+                    };
 
                     string json = JsonConvert.SerializeObject(payload);
-                    System.Diagnostics.Debug.WriteLine(">>> SENDING UPDATE BOARD JSON: " + json);
-
-                    // Используем PATCH вместо PUT, чтобы обновить только переданные поля
                     var request = new HttpRequestMessage(new HttpMethod("PATCH"), url)
                     {
                         Content = new StringContent(json, Encoding.UTF8, "application/json")
                     };
 
                     var response = await client.SendAsync(request);
-                    string responseBody = await response.Content.ReadAsStringAsync();
 
-                    System.Diagnostics.Debug.WriteLine(string.Format(">>> UPDATE BOARD STATUS: {0}, BODY: {1}", response.StatusCode, responseBody));
-
-                    // Если бэкенд не поддерживает PATCH (например, 405 Method Not Allowed), пробуем PUT
                     if (response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
                     {
                         var putContent = new StringContent(json, Encoding.UTF8, "application/json");
                         response = await client.PutAsync(url, putContent);
-                        responseBody = await response.Content.ReadAsStringAsync();
-                        System.Diagnostics.Debug.WriteLine(string.Format(">>> FALLBACK PUT BOARD STATUS: {0}, BODY: {1}", response.StatusCode, responseBody));
                     }
 
                     return response.IsSuccessStatusCode;
@@ -198,38 +178,78 @@ namespace MetroPinry.Services
             catch { return false; }
         }
 
-        public async Task<bool> AddPinToBoardAsync(int pinId, int boardId)
+        // ПРИКРЕПЛЕНИЕ ПИНА К ДОСКЕ ЧЕРЕЗ PATCH /api/v2/boards/{boardId}/
+        public async Task<bool> AddPinToBoardAsync(int boardId, int pinId)
         {
             try
             {
                 using (var client = new HttpClient())
                 {
                     AttachAuthToken(client);
-                    string url = string.Format("{0}/api/v2/pins/{1}/boards/", GetBaseUrl(), pinId);
-                    var payload = new { board_id = boardId };
-                    string json = JsonConvert.SerializeObject(payload);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    string url = string.Format("{0}/api/v2/boards/{1}/", GetBaseUrl(), boardId);
 
-                    var response = await client.PostAsync(url, content);
+                    var payload = new
+                    {
+                        pins_to_add = new int[] { pinId }
+                    };
+
+                    string json = JsonConvert.SerializeObject(payload);
+                    System.Diagnostics.Debug.WriteLine("ADD PIN TO BOARD JSON: " + json + " -> " + url);
+
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), url)
+                    {
+                        Content = new StringContent(json, Encoding.UTF8, "application/json")
+                    };
+
+                    var response = await client.SendAsync(request);
+                    string respBody = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine("ADD PIN TO BOARD STATUS: " + response.StatusCode + " " + respBody);
+
                     return response.IsSuccessStatusCode;
                 }
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("ADD PIN TO BOARD ERROR: " + ex.Message);
+                return false;
+            }
         }
 
-        public async Task<bool> RemovePinFromBoardAsync(int pinId, int boardId)
+        // ОТКРЕПЛЕНИЕ ПИНА ОТ ДОСКИ ЧЕРЕЗ PATCH /api/v2/boards/{boardId}/
+        public async Task<bool> RemovePinFromBoardAsync(int boardId, int pinId)
         {
             try
             {
                 using (var client = new HttpClient())
                 {
                     AttachAuthToken(client);
-                    string url = string.Format("{0}/api/v2/pins/{1}/boards/{2}/", GetBaseUrl(), pinId, boardId);
-                    var response = await client.DeleteAsync(url);
+                    string url = string.Format("{0}/api/v2/boards/{1}/", GetBaseUrl(), boardId);
+
+                    var payload = new
+                    {
+                        pins_to_remove = new int[] { pinId }
+                    };
+
+                    string json = JsonConvert.SerializeObject(payload);
+                    System.Diagnostics.Debug.WriteLine("REMOVE PIN FROM BOARD JSON: " + json + " -> " + url);
+
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), url)
+                    {
+                        Content = new StringContent(json, Encoding.UTF8, "application/json")
+                    };
+
+                    var response = await client.SendAsync(request);
+                    string respBody = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine("REMOVE PIN FROM BOARD STATUS: " + response.StatusCode + " " + respBody);
+
                     return response.IsSuccessStatusCode;
                 }
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("REMOVE PIN FROM BOARD ERROR: " + ex.Message);
+                return false;
+            }
         }
     }
 }

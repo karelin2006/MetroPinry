@@ -6,6 +6,7 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using MetroPinry.Models;
+using MetroPinry.Resources;
 using MetroPinry.Services;
 
 namespace MetroPinry.Views
@@ -24,13 +25,13 @@ namespace MetroPinry.Views
         {
             base.OnNavigatedTo(e);
 
-            var titleBlock = FindName("PageTitle") as TextBlock;
+            UpdateAppBarLocalization();
 
             if (BoardToEdit != null)
             {
-                if (titleBlock != null)
+                if (PageTitle != null)
                 {
-                    titleBlock.Text = "edit board";
+                    PageTitle.Text = AppResources.EditBoard;
                 }
 
                 TxtBoardName.Text = BoardToEdit.Name ?? string.Empty;
@@ -38,9 +39,9 @@ namespace MetroPinry.Views
             }
             else
             {
-                if (titleBlock != null)
+                if (PageTitle != null)
                 {
-                    titleBlock.Text = "create board";
+                    PageTitle.Text = AppResources.CreateBoard;
                 }
 
                 if (e.NavigationMode == NavigationMode.New)
@@ -63,21 +64,36 @@ namespace MetroPinry.Views
             }
         }
 
+        private void UpdateAppBarLocalization()
+        {
+            if (ApplicationBar == null || ApplicationBar.Buttons.Count < 2) return;
+
+            var saveBtn = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
+            var cancelBtn = ApplicationBar.Buttons[1] as ApplicationBarIconButton;
+
+            if (saveBtn != null)
+            {
+                saveBtn.Text = AppResources.Save;
+            }
+
+            if (cancelBtn != null)
+            {
+                cancelBtn.Text = AppResources.Cancel;
+            }
+        }
+
         private async void OnSaveAppBarClick(object sender, EventArgs e)
         {
-            // 1. Принудительно забираем фокус у клавиатуры/текстовых полей
             this.Focus();
 
             string boardName = TxtBoardName.Text != null ? TxtBoardName.Text.Trim() : string.Empty;
-
-            // 2. Строгая проверка чекбокса
             bool isPrivate = (ChkIsPrivate.IsChecked == true);
 
             System.Diagnostics.Debug.WriteLine(string.Format(">>> NEW BOARD SUBMIT: Name='{0}', IsPrivate={1}", boardName, isPrivate));
 
             if (string.IsNullOrEmpty(boardName))
             {
-                MessageBox.Show("Введите название доски.", "Предупреждение", MessageBoxButton.OK);
+                MessageBox.Show(AppResources.EnterBoardName, AppResources.Warning, MessageBoxButton.OK);
                 return;
             }
 
@@ -125,10 +141,10 @@ namespace MetroPinry.Views
             else
             {
                 string errorMsg = BoardToEdit != null
-                    ? "Не удалось обновить доску. Проверьте права доступа и сеть."
-                    : "Не удалось создать доску. Возможно, доска с таким именем уже существует или нет связи с сервером.";
+                    ? AppResources.BoardUpdateError
+                    : AppResources.BoardCreateError;
 
-                MessageBox.Show(errorMsg, "Ошибка", MessageBoxButton.OK);
+                MessageBox.Show(errorMsg, AppResources.Error, MessageBoxButton.OK);
             }
         }
 
@@ -144,7 +160,7 @@ namespace MetroPinry.Views
             if (indicator != null)
             {
                 indicator.IsVisible = isLoading;
-                indicator.Text = isLoading ? "сохранение..." : "MetroPinry";
+                indicator.Text = isLoading ? AppResources.Saving : AppResources.AppTitle;
             }
 
             if (ApplicationBar != null)
@@ -158,8 +174,5 @@ namespace MetroPinry.Views
             TxtBoardName.IsEnabled = !isLoading;
             ChkIsPrivate.IsEnabled = !isLoading;
         }
-
-
-
     }
 }

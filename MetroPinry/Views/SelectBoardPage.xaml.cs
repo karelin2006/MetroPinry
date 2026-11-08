@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,6 +7,7 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using MetroPinry.Models;
+using MetroPinry.Resources;
 using MetroPinry.Services;
 
 namespace MetroPinry.Views
@@ -21,45 +23,68 @@ namespace MetroPinry.Views
             InitializeComponent();
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
             if (TargetPin == null || App.ViewModel.Boards == null)
             {
-                if (NavigationService.CanGoBack)
-                {
-                    NavigationService.GoBack();
-                }
+                GoBackSafely();
                 return;
             }
 
-            // 1. Выбираем ТОЛЬКО СВОИ доски
-            var myBoards = App.ViewModel.Boards
-                .Where(b => b.IsMine)
-                .ToList();
+            var myBoards = App.ViewModel.Boards.Where(b => b.IsMine).ToList();
 
-            // 2. Применяем фильтрацию в зависимости от сценария
             if (IsRepinMode)
             {
-                PageHeader.Text = "save pin to";
+                PageHeader.Text = AppResources.SavePinTo;
                 BoardsList.ItemsSource = myBoards;
+                return;
             }
-            else if (IsAttachMode)
+
+            PageHeader.Text = IsAttachMode ? AppResources.AttachTo : AppResources.DetachFrom;
+
+            if (TargetPin.Boards == null)
             {
-                PageHeader.Text = "attach to";
-                // Свои доски, к которым этот пин еще не прикреплен
-                BoardsList.ItemsSource = myBoards
-                    .Where(b => !TargetPin.BelongsToBoard(b.Id, b.Name))
-                    .ToList();
+                TargetPin.Boards = new List<object>();
+            }
+
+            // Если пин открыт из общей ленты и не знает своих досок — синхронизируем их
+            if (TargetPin.Boards.Count == 0 && myBoards.Count > 0)
+            {
+                SetLoading(true, AppResources.AppTitle);
+                try
+                {
+                    var api = new PinryApiService();
+                    foreach (var board in myBoards)
+                    {
+                        var resp = await api.GetBoardPinsAsync(board.Id, board.Name);
+                        if (resp != null && resp.Results != null && resp.Results.Any(p => p.Id == TargetPin.Id))
+                        {
+                            if (!TargetPin.BelongsToBoard(board.Id, board.Name))
+                            {
+                                TargetPin.Boards.Add(board.Id);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("SYNC PIN BOARDS ERROR: " + ex.Message);
+                }
+                finally
+                {
+                    SetLoading(false);
+                }
+            }
+
+            if (IsAttachMode)
+            {
+                BoardsList.ItemsSource = myBoards.Where(b => !TargetPin.BelongsToBoard(b.Id, b.Name)).ToList();
             }
             else
             {
-                PageHeader.Text = "detach from";
-                // Свои доски, на которых этот пин уже находится
-                BoardsList.ItemsSource = myBoards
-                    .Where(b => TargetPin.BelongsToBoard(b.Id, b.Name))
-                    .ToList();
+                BoardsList.ItemsSource = myBoards.Where(b => TargetPin.BelongsToBoard(b.Id, b.Name)).ToList();
             }
         }
 
@@ -70,28 +95,25 @@ namespace MetroPinry.Views
 
             if (selectedBoard == null || TargetPin == null) return;
 
-            SetLoading(true, IsRepinMode ? "saving pin..." : (IsAttachMode ? "attaching..." : "detaching..."));
+            string progressText = IsRepinMode
+                ? AppResources.Saving
+                : (IsAttachMode ? AppResources.Attaching : AppResources.Detaching);
 
+            SetLoading(true, progressText);
             var api = new PinryApiService();
 
             try
             {
                 if (IsRepinMode)
                 {
-                    // 1. РЕЖИМ РЕПИНА (сохранение чужого пина к себе)
-                    Uri imageUri = TargetPin.DisplayOriginalUrl
-                        ?? TargetPin.DisplayStandardUrl
-                        ?? TargetPin.DisplayThumbnailUrl;
-
+                    Uri imageUri = TargetPin.DisplayOriginalUrl ?? TargetPin.DisplayStandardUrl ?? TargetPin.DisplayThumbnailUrl;
                     if (imageUri == null)
                     {
-                        MessageBox.Show("Не удалось получить прямую ссылку на изображение пина.", "Ошибка", MessageBoxButton.OK);
+                        MessageBox.Show(AppResources.DirectImageLinkError, AppResources.Error, MessageBoxButton.OK);
                         return;
                     }
 
                     string imageUrl = imageUri.AbsoluteUri;
-
-                    // Если ссылка относительная (/media/...) — превращаем её в абсолютную
                     if (!imageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
                         !imageUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                     {
@@ -99,63 +121,71 @@ namespace MetroPinry.Views
                         imageUrl = baseServer + "/" + imageUrl.TrimStart('/');
                     }
 
-                    // Автоматическое наследование приватности выбранной доски
                     bool pinPrivacy = selectedBoard.IsPrivate;
+                    string desc = TargetPin.Description ?? string.Empty;
+                    var tagsList = TargetPin.Tags != null ? TargetPin.Tags.ToList() : new List<string>();
 
-                    bool success = await api.CreatePinFromUrlAsync(
-                        url: imageUrl,
-                        desc: TargetPin.Description ?? string.Empty,
-                        boardsList: null,
-                        tagsList: TargetPin.Tags,
-                        isPrivate: pinPrivacy,
-                        targetBoardId: selectedBoard.Id);
+                    bool success = await api.CreatePinAsync(
+                            url: imageUrl,
+                            imageId: null,
+                            desc: desc,
+                            boardsList: null,
+                            tagsList: tagsList,
+                            isPrivate: pinPrivacy,
+                            targetBoardId: selectedBoard.Id);
 
                     if (success)
                     {
-                        App.ViewModel.IsDataLoaded = false;
-                        await App.ViewModel.LoadDataAsync();
-
-                        string privacyNotice = pinPrivacy ? " (private board)" : "";
-                        MessageBox.Show(
-                            string.Format("Pin saved to \"{0}\"{1}!", selectedBoard.Name, privacyNotice),
-                            "Saved",
-                            MessageBoxButton.OK);
-
-                        if (NavigationService.CanGoBack)
-                        {
-                            NavigationService.GoBack();
-                        }
+                        await RefreshAllAppDataAsync();
+                        string privacyNotice = pinPrivacy ? AppResources.PrivateBoardNotice : string.Empty;
+                        MessageBox.Show(string.Format(AppResources.PinSavedSuccessFormat, selectedBoard.Name, privacyNotice), AppResources.Saved, MessageBoxButton.OK);
+                        GoBackSafely();
                     }
                     else
                     {
-                        MessageBox.Show("Failed to save pin on server. Проверьте Debug Output.", "Error", MessageBoxButton.OK);
+                        MessageBox.Show(AppResources.RepinServerError, AppResources.Error, MessageBoxButton.OK);
                     }
                 }
                 else if (IsAttachMode)
                 {
-                    // 2. ПРИКРЕПЛЕНИЕ СВОЕГО ПИНА К ДОСКЕ
+                    if (selectedBoard.IsPrivate && !TargetPin.IsPrivate)
+                    {
+                        var tagsList = TargetPin.Tags != null ? TargetPin.Tags.ToList() : new List<string>();
+                        bool updateSuccess = await api.UpdatePinAsync(
+                            pinId: TargetPin.Id,
+                            desc: TargetPin.Description,
+                            tags: tagsList,
+                            isPrivate: true);
+
+                        if (updateSuccess)
+                        {
+                            TargetPin.IsPrivate = true;
+                        }
+                    }
+
                     bool success = await api.AddPinToBoardAsync(selectedBoard.Id, TargetPin.Id);
                     if (success)
                     {
-                        if (TargetPin.Boards != null)
+                        if (TargetPin.Boards == null)
+                        {
+                            TargetPin.Boards = new List<object>();
+                        }
+                        if (!TargetPin.BelongsToBoard(selectedBoard.Id, selectedBoard.Name))
                         {
                             TargetPin.Boards.Add(selectedBoard.Id);
                         }
-                        await App.ViewModel.LoadDataAsync();
 
-                        if (NavigationService.CanGoBack)
-                        {
-                            NavigationService.GoBack();
-                        }
+                        selectedBoard.PinsCount++;
+                        await RefreshAllAppDataAsync();
+                        GoBackSafely();
                     }
                     else
                     {
-                        MessageBox.Show("Failed to attach pin.", "Error", MessageBoxButton.OK);
+                        MessageBox.Show(AppResources.AttachPinError, AppResources.Error, MessageBoxButton.OK);
                     }
                 }
                 else
                 {
-                    // 3. ОТКРЕПЛЕНИЕ СВОЕГО ПИНА ОТ ДОСКИ
                     bool success = await api.RemovePinFromBoardAsync(selectedBoard.Id, TargetPin.Id);
                     if (success)
                     {
@@ -165,26 +195,55 @@ namespace MetroPinry.Views
                             TargetPin.Boards.Remove(selectedBoard.Id.ToString());
                             TargetPin.Boards.RemoveAll(item => item != null && item.ToString().Contains("\"id\":" + selectedBoard.Id));
                         }
-                        await App.ViewModel.LoadDataAsync();
 
-                        if (NavigationService.CanGoBack)
+                        if (selectedBoard.PinsCount > 0)
                         {
-                            NavigationService.GoBack();
+                            selectedBoard.PinsCount--;
                         }
+
+                        await RefreshAllAppDataAsync();
+                        GoBackSafely();
                     }
                     else
                     {
-                        MessageBox.Show("Failed to detach pin.", "Error", MessageBoxButton.OK);
+                        MessageBox.Show(AppResources.DetachPinError, AppResources.Error, MessageBoxButton.OK);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Operation error: " + ex.Message, "Error", MessageBoxButton.OK);
+                MessageBox.Show(string.Format(AppResources.OperationErrorFormat, ex.Message), AppResources.Error, MessageBoxButton.OK);
             }
             finally
             {
                 SetLoading(false);
+            }
+        }
+
+        // Принудительная перезагрузка всех коллекций ViewModel и актуализация текущих ссылок
+        private async System.Threading.Tasks.Task RefreshAllAppDataAsync()
+        {
+            var currentBoardsBackup = TargetPin != null && TargetPin.Boards != null
+                ? new List<object>(TargetPin.Boards)
+                : null;
+
+            App.ViewModel.IsDataLoaded = false;
+            await App.ViewModel.LoadDataAsync();
+
+            // Восстанавливаем знание пина о своих досках после перезагрузки
+            if (TargetPin != null && currentBoardsBackup != null)
+            {
+                TargetPin.Boards = currentBoardsBackup;
+            }
+
+            // Если открыта конкретная доска — обновляем на неё ссылку из свежего списка
+            if (BoardDetailsPage.SelectedBoard != null && App.ViewModel.Boards != null)
+            {
+                var updatedBoard = App.ViewModel.Boards.FirstOrDefault(b => b.Id == BoardDetailsPage.SelectedBoard.Id);
+                if (updatedBoard != null)
+                {
+                    BoardDetailsPage.SelectedBoard = updatedBoard;
+                }
             }
         }
 
@@ -196,6 +255,17 @@ namespace MetroPinry.Views
                 PageProgress.Text = text;
             }
             BoardsList.IsEnabled = !isLoading;
+        }
+
+        private void GoBackSafely()
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (NavigationService.CanGoBack)
+                {
+                    NavigationService.GoBack();
+                }
+            });
         }
     }
 }

@@ -4,7 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
+using Microsoft.Phone.Shell;
 using MetroPinry.Models;
+using MetroPinry.Resources;
 using MetroPinry.Services;
 
 namespace MetroPinry.Views
@@ -19,6 +21,8 @@ namespace MetroPinry.Views
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+
+            UpdateAppBarLocalization();
 
             // 1. Отображаем текущий сохраненный список
             AccountsList.ItemsSource = StorageService.Accounts;
@@ -39,6 +43,17 @@ namespace MetroPinry.Views
                     AccountsList.ItemsSource = null;
                     AccountsList.ItemsSource = StorageService.Accounts;
                 }
+            }
+        }
+
+        private void UpdateAppBarLocalization()
+        {
+            if (ApplicationBar == null || ApplicationBar.Buttons.Count == 0) return;
+
+            var addBtn = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
+            if (addBtn != null)
+            {
+                addBtn.Text = AppResources.AddAccount;
             }
         }
 
@@ -95,8 +110,8 @@ namespace MetroPinry.Views
             if (acc == null) return;
 
             var result = MessageBox.Show(
-                string.Format("Удалить аккаунт {0} ({1}) из сохраненных?", acc.Username, acc.ServerUrl),
-                "Удаление аккаунта",
+                string.Format(AppResources.DeleteAccountConfirmFormat, acc.Username, acc.ServerUrl),
+                AppResources.DeleteAccountTitle,
                 MessageBoxButton.OKCancel);
 
             if (result == MessageBoxResult.OK)

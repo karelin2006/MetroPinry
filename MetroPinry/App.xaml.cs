@@ -51,6 +51,9 @@ namespace MetroPinry
             // Standard XAML initialization
             InitializeComponent();
 
+            // Применяем сохранённый пользователем язык до инициализации фрейма
+            ApplyStoredCulture();
+
             // Phone-specific initialization
             InitializePhoneApplication();
 
@@ -65,6 +68,21 @@ namespace MetroPinry
             }
         }
 
+        public static void ApplyStoredCulture()
+        {
+            var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
+            if (settings.Contains("AppLanguage"))
+            {
+                string lang = settings["AppLanguage"] as string;
+                if (!string.IsNullOrEmpty(lang))
+                {
+                    var culture = new System.Globalization.CultureInfo(lang);
+                    System.Threading.Thread.CurrentThread.CurrentCulture = culture;
+                    System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
+                }
+            }
+        }
+
         // Code to execute when a contract activation such as a file open or save picker returns 
         // with the picked file or other return values
         private void Application_ContractActivated(object sender, Windows.ApplicationModel.Activation.IActivatedEventArgs e)
@@ -75,12 +93,14 @@ namespace MetroPinry
         // This code will not execute when the application is reactivated
         private void Application_Launching(object sender, LaunchingEventArgs e)
         {
+            ApplyStoredCulture();
         }
 
         // Code to execute when the application is activated (brought to foreground)
         // This code will not execute when the application is first launched
         private void Application_Activated(object sender, ActivatedEventArgs e)
         {
+            ApplyStoredCulture();
         }
 
         // Code to execute when the application is deactivated (sent to background)

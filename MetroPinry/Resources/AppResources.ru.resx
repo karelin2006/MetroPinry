@@ -1,0 +1,379 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- System Localization Properties -->
+  <data name="ResourceFlowDirection" xml:space="preserve">
+    <value>LeftToRight</value>
+  </data>
+  <data name="ResourceLanguage" xml:space="preserve">
+    <value>ru-RU</value>
+  </data>
+  <data name="ApplicationTitle" xml:space="preserve">
+    <value>METROPINRY</value>
+  </data>
+  <data name="AppTitle" xml:space="preserve">
+    <value>metropinry</value>
+  </data>
+
+  <!-- Panorama Headers -->
+  <data name="PanoramaFeed" xml:space="preserve">
+    <value>лента</value>
+  </data>
+  <data name="PanoramaBoards" xml:space="preserve">
+    <value>доски</value>
+  </data>
+  <data name="PanoramaSearch" xml:space="preserve">
+    <value>поиск</value>
+  </data>
+  <data name="PanoramaMe" xml:space="preserve">
+    <value>профиль</value>
+  </data>
+
+  <!-- Common Commands & Actions -->
+  <data name="AddPin" xml:space="preserve">
+    <value>добавить пин</value>
+  </data>
+  <data name="AddBoard" xml:space="preserve">
+    <value>создать доску</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>обновить</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>изменить</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>удалить</value>
+  </data>
+  <data name="SavePin" xml:space="preserve">
+    <value>сохранить</value>
+  </data>
+  <data name="Download" xml:space="preserve">
+    <value>скачать</value>
+  </data>
+
+  <!-- Login & Accounts -->
+  <data name="SignIn" xml:space="preserve">
+    <value>войти</value>
+  </data>
+  <data name="SignUp" xml:space="preserve">
+    <value>регистрация</value>
+  </data>
+  <data name="ChooseAccount" xml:space="preserve">
+    <value>выберите аккаунт</value>
+  </data>
+  <data name="OrEnterCredentials" xml:space="preserve">
+    <value>или введите данные</value>
+  </data>
+  <data name="ServerAddress" xml:space="preserve">
+    <value>адрес сервера</value>
+  </data>
+  <data name="Username" xml:space="preserve">
+    <value>имя пользователя</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>пароль</value>
+  </data>
+  <data name="RepeatPassword" xml:space="preserve">
+    <value>повторите пароль</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>эл. почта</value>
+  </data>
+  <data name="ApiToken" xml:space="preserve">
+    <value>api токен</value>
+  </data>
+  <data name="ApiTokenTapToCopy" xml:space="preserve">
+    <value>api токен (нажмите для копирования)</value>
+  </data>
+  <data name="ManageAccounts" xml:space="preserve">
+    <value>управление аккаунтами</value>
+  </data>
+  <data name="AddAccount" xml:space="preserve">
+    <value>добавить аккаунт</value>
+  </data>
+  <data name="Accounts" xml:space="preserve">
+    <value>аккаунты</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>выйти</value>
+  </data>
+  <data name="BrowseAsGuest" xml:space="preserve">
+    <value>войти как гость</value>
+  </data>
+  <data name="UseApiToken" xml:space="preserve">
+    <value>войти по api токену</value>
+  </data>
+  <data name="UsePassword" xml:space="preserve">
+    <value>войти по паролю</value>
+  </data>
+  <data name="CreateAccount" xml:space="preserve">
+    <value>создать аккаунт</value>
+  </data>
+  <data name="SwitchToSignIn" xml:space="preserve">
+    <value>перейти ко входу</value>
+  </data>
+
+  <!-- Pin & Board Details Metadata -->
+  <data name="Author" xml:space="preserve">
+    <value>автор</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>теги</value>
+  </data>
+  <data name="Access" xml:space="preserve">
+    <value>доступ</value>
+  </data>
+  <data name="BoardLabel" xml:space="preserve">
+    <value>доска</value>
+  </data>
+  <data name="Private" xml:space="preserve">
+    <value>приватный</value>
+  </data>
+  <data name="Public" xml:space="preserve">
+    <value>публичный</value>
+  </data>
+  <data name="NoDescription" xml:space="preserve">
+    <value>без описания</value>
+  </data>
+  <data name="AttachToBoard" xml:space="preserve">
+    <value>прикрепить к доске...</value>
+  </data>
+  <data name="DetachFromBoard" xml:space="preserve">
+    <value>открепить от доски...</value>
+  </data>
+  <data name="MyBoards" xml:space="preserve">
+    <value>мои доски</value>
+  </data>
+  <data name="PinsCountFormat" xml:space="preserve">
+    <value>пинов: {0}</value>
+  </data>
+
+  <!-- Search & Empty States -->
+  <data name="SearchHint" xml:space="preserve">
+    <value>поиск...</value>
+  </data>
+  <data name="SearchEmptyState" xml:space="preserve">
+    <value>введите поисковый запрос или тег</value>
+  </data>
+  <data name="NoResultsFound" xml:space="preserve">
+    <value>ничего не найдено</value>
+  </data>
+
+  <!-- Dialogs & User Feedback -->
+  <data name="DeletePinConfirm" xml:space="preserve">
+    <value>Вы действительно хотите удалить этот пин? Это действие нельзя отменить.</value>
+  </data>
+  <data name="DeleteBoardConfirmFormat" xml:space="preserve">
+    <value>Удалить доску "{0}"? Пины останутся в вашей ленте, но доска будет удалена.</value>
+  </data>
+  <data name="SignOutConfirm" xml:space="preserve">
+    <value>Выйти из текущего аккаунта?</value>
+  </data>
+  <data name="GuestSignOutConfirm" xml:space="preserve">
+    <value>Покинуть гостевой режим и войти в аккаунт?</value>
+  </data>
+  <data name="GuestRestrictedAction" xml:space="preserve">
+    <value>Для этого действия необходимо войти в аккаунт.</value>
+  </data>
+  <data name="TokenCopied" xml:space="preserve">
+    <value>API токен скопирован в буфер обмена.</value>
+  </data>
+  <data name="PictureSaved" xml:space="preserve">
+    <value>Изображение сохранено в галерею (Saved Pictures).</value>
+  </data>
+  <data name="LoadingImage" xml:space="preserve">
+    <value>загрузка изображения...</value>
+  </data>
+  <data name="Downloading" xml:space="preserve">
+    <value>скачивание...</value>
+  </data>
+  <data name="DeletingPin" xml:space="preserve">
+    <value>удаление пина...</value>
+  </data>
+  <data name="CreateBoard" xml:space="preserve">
+    <value>создать доску</value>
+  </data>
+  <data name="EditBoard" xml:space="preserve">
+    <value>изменить доску</value>
+  </data>
+  <data name="BoardName" xml:space="preserve">
+    <value>название доски</value>
+  </data>
+  <data name="EnterBoardName" xml:space="preserve">
+    <value>Введите название доски.</value>
+  </data>
+  <data name="PrivateBoardOption" xml:space="preserve">
+    <value>приватная (скрыта от других)</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>сохранить</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>отмена</value>
+  </data>
+  <data name="Saving" xml:space="preserve">
+    <value>сохранение...</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Предупреждение</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Ошибка</value>
+  </data>
+  <data name="BoardUpdateError" xml:space="preserve">
+    <value>Не удалось обновить доску. Проверьте права доступа и сеть.</value>
+  </data>
+  <data name="BoardCreateError" xml:space="preserve">
+    <value>Не удалось создать доску. Возможно, доска с таким именем уже существует или нет связи с сервером.</value>
+  </data>
+  <data name="EditPin" xml:space="preserve">
+    <value>изменить пин</value>
+  </data>
+  <data name="NoImageSelected" xml:space="preserve">
+    <value>изображение не выбрано</value>
+  </data>
+  <data name="ChooseFromGallery" xml:space="preserve">
+    <value>выбрать из галереи</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>очистить</value>
+  </data>
+  <data name="ImageUrl" xml:space="preserve">
+    <value>ссылка на изображение</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>описание</value>
+  </data>
+  <data name="TagsInputHint" xml:space="preserve">
+    <value>теги (через запятую или #)</value>
+  </data>
+  <data name="CreateBoardButton" xml:space="preserve">
+    <value>+ создать доску</value>
+  </data>
+  <data name="PrivatePinOption" xml:space="preserve">
+    <value>приватный (скрыт из общей ленты)</value>
+  </data>
+  <data name="NoneOption" xml:space="preserve">
+    <value>(нет)</value>
+  </data>
+  <data name="SpecifyImagePrompt" xml:space="preserve">
+    <value>Укажите ссылку на изображение или выберите фото из галереи.</value>
+  </data>
+  <data name="PinSaveError" xml:space="preserve">
+    <value>Не удалось сохранить пин. Проверьте подключение к серверу и права доступа.</value>
+  </data>
+  <data name="DeleteAccountConfirmFormat" xml:space="preserve">
+    <value>Удалить аккаунт {0} ({1}) из сохраненных?</value>
+  </data>
+  <data name="DeleteAccountTitle" xml:space="preserve">
+    <value>Удаление аккаунта</value>
+  </data>
+  <data name="SelectBoard" xml:space="preserve">
+    <value>выберите доску</value>
+  </data>
+  <data name="SavePinTo" xml:space="preserve">
+    <value>сохранить в</value>
+  </data>
+  <data name="AttachTo" xml:space="preserve">
+    <value>прикрепить к</value>
+  </data>
+  <data name="DetachFrom" xml:space="preserve">
+    <value>открепить от</value>
+  </data>
+  <data name="Attaching" xml:space="preserve">
+    <value>прикрепление...</value>
+  </data>
+  <data name="Detaching" xml:space="preserve">
+    <value>открепление...</value>
+  </data>
+  <data name="PinSavedSuccessFormat" xml:space="preserve">
+    <value>Пин сохранён в «{0}»{1}!</value>
+  </data>
+  <data name="PrivateBoardNotice" xml:space="preserve">
+    <value> (приватная доска)</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>Готово</value>
+  </data>
+  <data name="DirectImageLinkError" xml:space="preserve">
+    <value>Не удалось получить прямую ссылку на изображение пина.</value>
+  </data>
+  <data name="RepinServerError" xml:space="preserve">
+    <value>Не удалось сохранить пин на сервере. Проверьте права доступа и сеть.</value>
+  </data>
+  <data name="AttachPinError" xml:space="preserve">
+    <value>Не удалось прикрепить пин к доске.</value>
+  </data>
+  <data name="DetachPinError" xml:space="preserve">
+    <value>Не удалось открепить пин от доски.</value>
+  </data>
+  <data name="OperationErrorFormat" xml:space="preserve">
+    <value>Ошибка операции: {0}</value>
+  </data>
+  <data name="SwitchLanguage" xml:space="preserve">
+    <value>переключить на английский</value>
+  </data>
+  <data name="LanguageRestartNotice" xml:space="preserve">
+    <value>Язык изменён. Страница будет перезагружена.</value>
+  </data>
+  <data name="ChooseLanguage" xml:space="preserve"><value>выбор языка</value></data>
+</root>

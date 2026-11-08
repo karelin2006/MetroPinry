@@ -11,9 +11,12 @@
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
 
-    <phone:PhoneApplicationPage.Resources>
-        <shell:ProgressIndicator x:Key="ProgressIndicator" IsVisible="False" IsIndeterminate="True" Text="saving pin..."/>
-    </phone:PhoneApplicationPage.Resources>
+    <shell:SystemTray.ProgressIndicator>
+        <shell:ProgressIndicator x:Name="PinProgressIndicator" 
+                                 IsVisible="False" 
+                                 IsIndeterminate="True" 
+                                 Text="{Binding Path=LocalizedResources.AppTitle, Source={StaticResource LocalizedStrings}}"/>
+    </shell:SystemTray.ProgressIndicator>
 
     <Grid x:Name="LayoutRoot" Background="Transparent">
         <Grid.RowDefinitions>
@@ -22,8 +25,8 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="18,17,0,10">
-            <TextBlock Text="metropinry" Style="{StaticResource PhoneTextNormalStyle}"/>
-            <TextBlock x:Name="PageTitle" Text="add pin" Margin="0,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+            <TextBlock Text="{Binding Path=LocalizedResources.AppTitle, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="PageTitle" Text="{Binding Path=LocalizedResources.AddPin, Source={StaticResource LocalizedStrings}}" Margin="0,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" Margin="12,0,12,0">
@@ -31,7 +34,11 @@
 
                 <Border Width="200" Height="200" Background="#1AFFFFFF" HorizontalAlignment="Left" Margin="6,0,0,16">
                     <Grid>
-                        <TextBlock x:Name="PlaceholderText" Text="no image selected" Style="{StaticResource PhoneTextSubtleStyle}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="PlaceholderText" 
+                                   Text="{Binding Path=LocalizedResources.NoImageSelected, Source={StaticResource LocalizedStrings}}" 
+                                   Style="{StaticResource PhoneTextSubtleStyle}" 
+                                   VerticalAlignment="Center" 
+                                   HorizontalAlignment="Center"/>
                         <Image x:Name="ImagePreview" Stretch="UniformToFill" Visibility="Collapsed"/>
                     </Grid>
                 </Border>
@@ -42,18 +49,24 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Button x:Name="BtnPickImage" Content="choose from gallery" Click="OnPickImageClick" Margin="0,0,6,0"/>
-                    <Button x:Name="BtnClearImage" Grid.Column="1" Content="clear" Click="OnClearImageClick" Visibility="Collapsed"/>
+                    <Button x:Name="BtnPickImage" 
+                            Content="{Binding Path=LocalizedResources.ChooseFromGallery, Source={StaticResource LocalizedStrings}}" 
+                            Click="OnPickImageClick" 
+                            Margin="0,0,6,0"/>
+                    <Button x:Name="BtnClearImage" 
+                            Grid.Column="1" 
+                            Content="{Binding Path=LocalizedResources.Clear, Source={StaticResource LocalizedStrings}}" 
+                            Click="OnClearImageClick" 
+                            Visibility="Collapsed"/>
                 </Grid>
 
-                <TextBlock Text="image url" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
+                <TextBlock Text="{Binding Path=LocalizedResources.ImageUrl, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
                 <TextBox x:Name="TxtImageUrl" InputScope="Url" TextChanged="OnImageUrlChanged" Margin="-6,0,-6,8"/>
 
-                <TextBlock Text="description" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
+                <TextBlock Text="{Binding Path=LocalizedResources.Description, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
                 <TextBox x:Name="TxtDescription" TextWrapping="Wrap" AcceptsReturn="True" Height="90" Margin="-6,0,-6,8"/>
 
-                <TextBlock Text="tags (comma or # separated)" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
-                <!-- Поле ввода без автоподстановки -->
+                <TextBlock Text="{Binding Path=LocalizedResources.TagsInputHint, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,4,0,0"/>
                 <TextBox x:Name="TxtTags" 
                          TextChanged="OnTagsTextChanged" 
                          Margin="-6,0,-6,0"/>
@@ -72,30 +85,31 @@
                             <DataTemplate>
                                 <Border Padding="12,10">
                                     <TextBlock Text="{Binding}" 
-                       FontSize="20" 
-                       Foreground="{StaticResource PhoneForegroundBrush}"/>
+                                               FontSize="20" 
+                                               Foreground="{StaticResource PhoneForegroundBrush}"/>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Border>
 
-                <!-- Выбор доски + кнопка создания -->
-                <Grid Margin="6,8,6,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="board" Style="{StaticResource PhoneTextSubtleStyle}" VerticalAlignment="Center"/>
-                    <HyperlinkButton Grid.Column="1" 
-                                     Content="+ create board" 
-                                     Foreground="{StaticResource PhoneAccentBrush}"
-                                     Click="OnCreateNewBoardClick"
-                                     Margin="0,-12,0,-12"/>
-                </Grid>
-                <toolkit:ListPicker x:Name="BoardPicker" DisplayMemberPath="Name" Margin="6,0,6,12"/>
+                <!-- Выбор доски и кнопка "Создать доску" (скрываются при редактировании) -->
+                <StackPanel x:Name="BoardSelectionPanel" Margin="0,8,0,0">
+                    <TextBlock Text="{Binding Path=LocalizedResources.BoardLabel, Source={StaticResource LocalizedStrings}}" 
+                               Style="{StaticResource PhoneTextSubtleStyle}" 
+                               Margin="6,0,0,0"/>
 
-                <CheckBox x:Name="ChkIsPrivate" Content="private (hidden from feed)" Margin="-12,0,0,12"/>
+                    <toolkit:ListPicker x:Name="BoardPicker" DisplayMemberPath="Name" Margin="6,0,6,0"/>
+
+                    <Button x:Name="BtnCreateBoard"
+                            Content="{Binding Path=LocalizedResources.CreateBoardButton, Source={StaticResource LocalizedStrings}}" 
+                            Click="OnCreateNewBoardClick" 
+                            Margin="-6,0,-6,12"/>
+                </StackPanel>
+
+                <CheckBox x:Name="ChkIsPrivate" 
+                          Content="{Binding Path=LocalizedResources.PrivatePinOption, Source={StaticResource LocalizedStrings}}" 
+                          Margin="-12,0,0,12"/>
 
             </StackPanel>
         </ScrollViewer>

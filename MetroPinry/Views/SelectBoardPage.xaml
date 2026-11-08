@@ -22,8 +22,8 @@
 
         <!-- Заголовок в стиле Windows Phone -->
         <StackPanel Grid.Row="0" Margin="12,17,0,28">
-            <TextBlock Text="METROPINRY" Style="{StaticResource PhoneTextNormalStyle}"/>
-            <TextBlock x:Name="PageHeader" Text="select board" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+            <TextBlock Text="{Binding Path=LocalizedResources.ApplicationTitle, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="PageHeader" Text="{Binding Path=LocalizedResources.SelectBoard, Source={StaticResource LocalizedStrings}}" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
 
         <!-- Крупный список досок в стиле Metro Full Mode ListPicker -->

@@ -1,64 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    Microsoft ResX Schema
-
-    Version 2.0
-
-    The primary goals of this format is to allow a simple XML format
-    that is mostly human readable. The generation and parsing of the
-    various data types are done through the TypeConverter classes
-    associated with the data types.
-
-    Example:
-
-    ... ado.net/XML headers & schema ...
-    <resheader name="resmimetype">text/microsoft-resx</resheader>
-    <resheader name="version">2.0</resheader>
-    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
-    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
-    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
-    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
-        <value>[base64 mime encoded serialized .NET Framework object]</value>
-    </data>
-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-        <comment>This is a comment</comment>
-    </data>
-
-    There are any number of "resheader" rows that contain simple
-    name/value pairs.
-
-    Each data row contains a name, and value. The row also contains a
-    type or mimetype. Type corresponds to a .NET class that support
-    text/value conversion through the TypeConverter architecture.
-    Classes that don't support this are serialized and stored with the
-    mimetype set.
-
-    The mimetype is used for serialized objects, and tells the
-    ResXResourceReader how to depersist the object. This is currently not
-    extensible. For a given mimetype the value must be set accordingly:
-
-    Note - application/x-microsoft.net.object.binary.base64 is the format
-    that the ResXResourceWriter will generate, however the reader can
-    read any of the formats listed below.
-
-    mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with
-            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
-            : and then encoded with base64 encoding.
-
-    mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with
-            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
-            : and then encoded with base64 encoding.
-
-    mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array
-            : using a System.ComponentModel.TypeConverter
-            : and then encoded with base64 encoding.
-    -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
@@ -117,6 +58,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+
+  <!-- System Localization Properties -->
   <data name="ResourceFlowDirection" xml:space="preserve">
     <value>LeftToRight</value>
     <comment>Controls the FlowDirection for all elements in the RootFrame. Set to the traditional direction of this resource file's language</comment>
@@ -126,9 +69,313 @@
     <comment>Controls the Language and ensures that the font for all elements in the RootFrame aligns with the app's language. Set to the language code of this resource file's language.</comment>
   </data>
   <data name="ApplicationTitle" xml:space="preserve">
-    <value>my application</value>
+    <value>METROPINRY</value>
   </data>
-  <data name="SampleProperty" xml:space="preserve">
-    <value>Sample Runtime Property Value</value>
+  <data name="AppTitle" xml:space="preserve">
+    <value>metropinry</value>
   </data>
+
+  <!-- Panorama Headers -->
+  <data name="PanoramaFeed" xml:space="preserve">
+    <value>feed</value>
+  </data>
+  <data name="PanoramaBoards" xml:space="preserve">
+    <value>boards</value>
+  </data>
+  <data name="PanoramaSearch" xml:space="preserve">
+    <value>search</value>
+  </data>
+  <data name="PanoramaMe" xml:space="preserve">
+    <value>me</value>
+  </data>
+
+  <!-- Common Commands & Actions -->
+  <data name="AddPin" xml:space="preserve">
+    <value>add pin</value>
+  </data>
+  <data name="AddBoard" xml:space="preserve">
+    <value>add board</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>refresh</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>edit</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>delete</value>
+  </data>
+  <data name="SavePin" xml:space="preserve">
+    <value>save pin</value>
+  </data>
+  <data name="Download" xml:space="preserve">
+    <value>download</value>
+  </data>
+
+  <!-- Login & Accounts -->
+  <data name="SignIn" xml:space="preserve">
+    <value>sign in</value>
+  </data>
+  <data name="SignUp" xml:space="preserve">
+    <value>sign up</value>
+  </data>
+  <data name="ChooseAccount" xml:space="preserve">
+    <value>choose account</value>
+  </data>
+  <data name="OrEnterCredentials" xml:space="preserve">
+    <value>or enter credentials</value>
+  </data>
+  <data name="ServerAddress" xml:space="preserve">
+    <value>server address</value>
+  </data>
+  <data name="Username" xml:space="preserve">
+    <value>username</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>password</value>
+  </data>
+  <data name="RepeatPassword" xml:space="preserve">
+    <value>repeat password</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>email</value>
+  </data>
+  <data name="ApiToken" xml:space="preserve">
+    <value>api token</value>
+  </data>
+  <data name="ApiTokenTapToCopy" xml:space="preserve">
+    <value>api token (tap to copy)</value>
+  </data>
+  <data name="ManageAccounts" xml:space="preserve">
+    <value>manage accounts</value>
+  </data>
+  <data name="AddAccount" xml:space="preserve">
+    <value>add account</value>
+  </data>
+  <data name="Accounts" xml:space="preserve">
+    <value>accounts</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>sign out</value>
+  </data>
+  <data name="BrowseAsGuest" xml:space="preserve">
+    <value>browse as guest</value>
+  </data>
+  <data name="UseApiToken" xml:space="preserve">
+    <value>use api token</value>
+  </data>
+  <data name="UsePassword" xml:space="preserve">
+    <value>use password</value>
+  </data>
+  <data name="CreateAccount" xml:space="preserve">
+    <value>create account</value>
+  </data>
+  <data name="SwitchToSignIn" xml:space="preserve">
+    <value>switch to sign in</value>
+  </data>
+
+  <!-- Pin & Board Details Metadata -->
+  <data name="Author" xml:space="preserve">
+    <value>author</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>tags</value>
+  </data>
+  <data name="Access" xml:space="preserve">
+    <value>access</value>
+  </data>
+  <data name="BoardLabel" xml:space="preserve">
+    <value>board</value>
+  </data>
+  <data name="Private" xml:space="preserve">
+    <value>private</value>
+  </data>
+  <data name="Public" xml:space="preserve">
+    <value>public</value>
+  </data>
+  <data name="NoDescription" xml:space="preserve">
+    <value>no description</value>
+  </data>
+  <data name="AttachToBoard" xml:space="preserve">
+    <value>attach to board...</value>
+  </data>
+  <data name="DetachFromBoard" xml:space="preserve">
+    <value>detach from board...</value>
+  </data>
+  <data name="MyBoards" xml:space="preserve">
+    <value>my boards</value>
+  </data>
+  <data name="PinsCountFormat" xml:space="preserve">
+    <value>{0} pins</value>
+  </data>
+
+  <!-- Search & Empty States -->
+  <data name="SearchHint" xml:space="preserve">
+    <value>type to search...</value>
+  </data>
+  <data name="SearchEmptyState" xml:space="preserve">
+    <value>enter keywords or tags</value>
+  </data>
+  <data name="NoResultsFound" xml:space="preserve">
+    <value>no results found</value>
+  </data>
+
+  <!-- Dialogs & User Feedback -->
+  <data name="DeletePinConfirm" xml:space="preserve">
+    <value>Are you sure you want to delete this pin? This action cannot be undone.</value>
+  </data>
+  <data name="DeleteBoardConfirmFormat" xml:space="preserve">
+    <value>Are you sure you want to delete board "{0}"? Pins will stay in your feed.</value>
+  </data>
+  <data name="SignOutConfirm" xml:space="preserve">
+    <value>Sign out of current account?</value>
+  </data>
+  <data name="GuestSignOutConfirm" xml:space="preserve">
+    <value>Leave guest mode and sign in?</value>
+  </data>
+  <data name="GuestRestrictedAction" xml:space="preserve">
+    <value>You must sign in to perform this action.</value>
+  </data>
+  <data name="TokenCopied" xml:space="preserve">
+    <value>API token copied to clipboard.</value>
+  </data>
+  <data name="PictureSaved" xml:space="preserve">
+    <value>Image saved to Saved Pictures gallery.</value>
+  </data>
+  <data name="LoadingImage" xml:space="preserve">
+    <value>loading image...</value>
+  </data>
+  <data name="Downloading" xml:space="preserve">
+    <value>downloading...</value>
+  </data>
+  <data name="DeletingPin" xml:space="preserve">
+    <value>deleting pin...</value>
+  </data>
+  <data name="CreateBoard" xml:space="preserve">
+    <value>create board</value>
+  </data>
+  <data name="EditBoard" xml:space="preserve">
+    <value>edit board</value>
+  </data>
+  <data name="BoardName" xml:space="preserve">
+    <value>board name</value>
+  </data>
+  <data name="EnterBoardName" xml:space="preserve">
+    <value>Enter board name.</value>
+  </data>
+  <data name="PrivateBoardOption" xml:space="preserve">
+    <value>private (hidden from others)</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>save</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>cancel</value>
+  </data>
+  <data name="Saving" xml:space="preserve">
+    <value>saving...</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="BoardUpdateError" xml:space="preserve">
+    <value>Unable to update board. Check your permissions and network connection.</value>
+  </data>
+  <data name="BoardCreateError" xml:space="preserve">
+    <value>Unable to create board. A board with this name might already exist or the server is unreachable.</value>
+  </data>
+  <data name="EditPin" xml:space="preserve">
+    <value>edit pin</value>
+  </data>
+  <data name="NoImageSelected" xml:space="preserve">
+    <value>no image selected</value>
+  </data>
+  <data name="ChooseFromGallery" xml:space="preserve">
+    <value>choose from gallery</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>clear</value>
+  </data>
+  <data name="ImageUrl" xml:space="preserve">
+    <value>image url</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>description</value>
+  </data>
+  <data name="TagsInputHint" xml:space="preserve">
+    <value>tags (comma or # separated)</value>
+  </data>
+  <data name="CreateBoardButton" xml:space="preserve">
+    <value>+ create board</value>
+  </data>
+  <data name="PrivatePinOption" xml:space="preserve">
+    <value>private (hidden from feed)</value>
+  </data>
+  <data name="NoneOption" xml:space="preserve">
+    <value>(none)</value>
+  </data>
+  <data name="SpecifyImagePrompt" xml:space="preserve">
+    <value>Please provide an image URL or choose a photo from your gallery.</value>
+  </data>
+  <data name="PinSaveError" xml:space="preserve">
+    <value>Unable to save pin. Check your connection and permissions.</value>
+  </data>
+  <data name="DeleteAccountConfirmFormat" xml:space="preserve">
+    <value>Remove account {0} ({1}) from saved accounts?</value>
+  </data>
+  <data name="DeleteAccountTitle" xml:space="preserve">
+    <value>Delete account</value>
+  </data>
+  <data name="SelectBoard" xml:space="preserve">
+    <value>select board</value>
+  </data>
+  <data name="SavePinTo" xml:space="preserve">
+    <value>save pin to</value>
+  </data>
+  <data name="AttachTo" xml:space="preserve">
+    <value>attach to</value>
+  </data>
+  <data name="DetachFrom" xml:space="preserve">
+    <value>detach from</value>
+  </data>
+  <data name="Attaching" xml:space="preserve">
+    <value>attaching...</value>
+  </data>
+  <data name="Detaching" xml:space="preserve">
+    <value>detaching...</value>
+  </data>
+  <data name="PinSavedSuccessFormat" xml:space="preserve">
+    <value>Pin saved to "{0}"{1}!</value>
+  </data>
+  <data name="PrivateBoardNotice" xml:space="preserve">
+    <value> (private board)</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="DirectImageLinkError" xml:space="preserve">
+    <value>Unable to retrieve a direct image URL for this pin.</value>
+  </data>
+  <data name="RepinServerError" xml:space="preserve">
+    <value>Failed to save pin on the server. Please check your network and permissions.</value>
+  </data>
+  <data name="AttachPinError" xml:space="preserve">
+    <value>Failed to attach pin to board.</value>
+  </data>
+  <data name="DetachPinError" xml:space="preserve">
+    <value>Failed to detach pin from board.</value>
+  </data>
+  <data name="OperationErrorFormat" xml:space="preserve">
+    <value>Operation error: {0}</value>
+  </data>
+  <data name="SwitchLanguage" xml:space="preserve">
+    <value>switch to russian</value>
+  </data>
+  <data name="LanguageRestartNotice" xml:space="preserve">
+    <value>Language changed. The page will reload now.</value>
+  </data>
+  <data name="ChooseLanguage" xml:space="preserve"><value>choose language</value></data>
 </root>

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MetroPinry.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace MetroPinry.Services
 {
@@ -58,31 +59,39 @@ namespace MetroPinry.Services
         // СОЗДАНИЕ, ОБНОВЛЕНИЕ И УДАЛЕНИЕ ПИНОВ
         // ==========================================
 
-        public async Task<bool> UpdatePinAsync(int pinId, string desc, List<string> tags, bool isPrivate = false, int? targetBoardId = null)
+        public async Task<bool> UpdatePinAsync(int pinId, string desc, List<string> tags, bool isPrivate = false)
         {
             try
             {
-                var boardsList = new List<int>();
-                if (targetBoardId.HasValue && targetBoardId.Value > 0)
-                {
-                    boardsList.Add(targetBoardId.Value);
-                }
-
                 using (var client = new HttpClient())
                 {
                     AttachAuthToken(client);
                     string url = string.Format("{0}/api/v2/pins/{1}/", GetBaseUrl(), pinId);
+
                     var payload = new
                     {
-                        description = desc,
+                        description = desc ?? string.Empty,
                         tags = tags ?? new List<string>(),
-                        is_private = isPrivate,
-                        boards = boardsList
+                        @private = isPrivate,
+                        is_private = isPrivate
                     };
+
                     string json = JsonConvert.SerializeObject(payload);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                    var response = await client.PutAsync(url, content);
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), url)
+                    {
+                        Content = content
+                    };
+
+                    var response = await client.SendAsync(request);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        string err = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine("UPDATE PIN FAIL: " + response.StatusCode + " " + err);
+                    }
+
                     return response.IsSuccessStatusCode;
                 }
             }
@@ -93,7 +102,7 @@ namespace MetroPinry.Services
             }
         }
 
-        public async Task<bool> CreatePinFromUrlAsync(string url, string desc, List<string> boardsList, List<string> tagsList, bool isPrivate = false, int? targetBoardId = null)
+        public async Task<bool> CreatePinAsync(string url, int? imageId, string desc, List<string> boardsList, List<string> tagsList, bool isPrivate = false, int? targetBoardId = null)
         {
             try
             {
@@ -117,38 +126,59 @@ namespace MetroPinry.Services
                 using (var client = new HttpClient())
                 {
                     AttachAuthToken(client);
-                    string endpoint = string.Format("{0}/api/v2/pins/?format=json", GetBaseUrl());
+                    string endpoint = string.Format("{0}/api/v2/pins/", GetBaseUrl());
 
-                    // В Pinry поле приватности называется "private", а ссылка — "url" или "pin_image"
                     var payload = new Dictionary<string, object>
-            {
-                { "url", url ?? string.Empty },
-                { "pin_image", url ?? string.Empty },
-                { "description", desc ?? string.Empty },
-                { "tags", tagsList ?? new List<string>() },
-                { "private", isPrivate },
-                { "is_private", isPrivate },
-                { "boards", boards }
-            };
+                    {
+                        { "description", desc ?? string.Empty },
+                        { "tags", tagsList ?? new List<string>() },
+                        { "private", isPrivate },
+                        { "is_private", isPrivate }
+                    };
+
+                    if (!string.IsNullOrEmpty(url))
+                    {
+                        payload.Add("url", url);
+                    }
+                    else if (imageId.HasValue)
+                    {
+                        payload.Add("image_by_id", imageId.Value);
+                    }
 
                     string json = JsonConvert.SerializeObject(payload);
-                    System.Diagnostics.Debug.WriteLine("CREATE PIN REQUEST URL: " + endpoint);
-                    System.Diagnostics.Debug.WriteLine("CREATE PIN PAYLOAD: " + json);
+                    System.Diagnostics.Debug.WriteLine("CREATE PIN JSON: " + json);
 
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
-
                     var response = await client.PostAsync(endpoint, content);
                     string responseBody = await response.Content.ReadAsStringAsync();
 
                     System.Diagnostics.Debug.WriteLine("CREATE PIN STATUS: " + response.StatusCode);
-                    System.Diagnostics.Debug.WriteLine("CREATE PIN RESPONSE: " + responseBody);
 
-                    return response.IsSuccessStatusCode;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Если выбрана доска, прикрепляем созданный пин через PATCH /api/v2/boards/{boardId}/
+                        if (boards.Count > 0)
+                        {
+                            var jObj = JObject.Parse(responseBody);
+                            if (jObj["id"] != null)
+                            {
+                                int createdPinId = jObj["id"].Value<int>();
+                                foreach (int bId in boards)
+                                {
+                                    await AddPinToBoardAsync(bId, createdPinId);
+                                }
+                            }
+                        }
+                        return true;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine("CREATE PIN FAIL: " + response.StatusCode + " " + responseBody);
+                    return false;
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("CREATE PIN FROM URL ERROR: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("CREATE PIN ERROR: " + ex.Message);
                 return false;
             }
         }
@@ -164,13 +194,15 @@ namespace MetroPinry.Services
                     imageBytes = ms.ToArray();
                 }
 
-                string uploadedUrl = await UploadPinImageAsync(imageBytes, "upload.jpg");
-                if (string.IsNullOrEmpty(uploadedUrl))
+                int? uploadedImageId = await UploadPinImageAsync(imageBytes, "upload.jpg");
+
+                if (uploadedImageId == null)
                 {
+                    System.Diagnostics.Debug.WriteLine("UPLOAD PIN STREAM ERROR: Image upload failed");
                     return false;
                 }
 
-                return await CreatePinFromUrlAsync(uploadedUrl, desc, boardsList, tagsList, isPrivate, targetBoardId);
+                return await CreatePinAsync(null, uploadedImageId, desc, boardsList, tagsList, isPrivate, targetBoardId);
             }
             catch (Exception ex)
             {
@@ -179,7 +211,7 @@ namespace MetroPinry.Services
             }
         }
 
-        public async Task<string> UploadPinImageAsync(byte[] imageBytes, string fileName)
+        public async Task<int?> UploadPinImageAsync(byte[] imageBytes, string fileName)
         {
             try
             {
@@ -187,19 +219,31 @@ namespace MetroPinry.Services
                 {
                     AttachAuthToken(client);
                     string url = string.Format("{0}/api/v2/images/", GetBaseUrl());
+                    string boundary = "----Boundary" + Guid.NewGuid().ToString("N");
 
-                    using (var content = new MultipartFormDataContent())
+                    using (var content = new MultipartFormDataContent(boundary))
                     {
                         var imageContent = new ByteArrayContent(imageBytes);
                         imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
-                        content.Add(imageContent, "pin_image", fileName);
+                        imageContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
+                        {
+                            Name = "\"image\"",
+                            FileName = "\"" + fileName + "\""
+                        };
+
+                        content.Add(imageContent);
 
                         var response = await client.PostAsync(url, content);
                         if (response.IsSuccessStatusCode)
                         {
                             string json = await response.Content.ReadAsStringAsync();
-                            var result = JsonConvert.DeserializeObject<ImageUploadResponse>(json);
-                            return result != null ? result.Url : null;
+                            var result = JsonConvert.DeserializeObject<PinImage>(json);
+                            return result != null ? (int?)result.Id : null;
+                        }
+                        else
+                        {
+                            string err = await response.Content.ReadAsStringAsync();
+                            System.Diagnostics.Debug.WriteLine("UPLOAD IMAGE FAIL: " + response.StatusCode + " " + err);
                         }
                     }
                 }
@@ -224,6 +268,12 @@ namespace MetroPinry.Services
                 }
             }
             catch { return false; }
+        }
+
+        private class PinImage
+        {
+            [JsonProperty("id")]
+            public int Id { get; set; }
         }
     }
 }

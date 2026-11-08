@@ -20,8 +20,8 @@
         <ProgressBar x:Name="LoginProgressBar" VerticalAlignment="Top" IsIndeterminate="True" Visibility="Collapsed" Margin="0" Foreground="{StaticResource PhoneAccentBrush}"/>
 
         <StackPanel Grid.Row="0" Margin="24,17,0,18">
-            <TextBlock Text="METROPINRY" Style="{StaticResource PhoneTextNormalStyle}"/>
-            <TextBlock x:Name="PageTitle" Text="sign in" Margin="-3,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+            <TextBlock Text="{Binding Path=LocalizedResources.ApplicationTitle, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="PageTitle" Text="{Binding Path=LocalizedResources.SignIn, Source={StaticResource LocalizedStrings}}" Margin="-3,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
 
         <ScrollViewer Grid.Row="1">
@@ -29,7 +29,7 @@
 
                 <!-- БЛОК 1: СОХРАНЕННЫЕ АККАУНТЫ ДЛЯ БЫСТРОГО ВХОДА -->
                 <StackPanel x:Name="SavedAccountsSection" Visibility="Collapsed" Margin="0,0,0,16">
-                    <TextBlock Text="choose account" Style="{StaticResource PhoneTextGroupHeaderStyle}" Margin="-12,0,0,8"/>
+                    <TextBlock Text="{Binding Path=LocalizedResources.ChooseAccount, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextGroupHeaderStyle}" Margin="-12,0,0,8"/>
 
                     <ItemsControl x:Name="SavedAccountsList">
                         <ItemsControl.ItemTemplate>
@@ -67,42 +67,42 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <TextBlock Text="or enter credentials" Style="{StaticResource PhoneTextGroupHeaderStyle}" Margin="-12,12,0,8"/>
+                    <TextBlock Text="{Binding Path=LocalizedResources.OrEnterCredentials, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextGroupHeaderStyle}" Margin="-12,12,0,8"/>
                 </StackPanel>
 
                 <!-- БЛОК 2: ФОРМА ВВОДА -->
                 <!-- Адрес сервера -->
                 <Grid Margin="-12,0,-12,12">
                     <TextBox x:Name="ServerUrlBox" Text="https://" InputScope="Url" TextChanged="TextBox_TextChanged"/>
-                    <TextBlock x:Name="ServerUrlHint" Text="server address" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0" Visibility="Collapsed"/>
+                    <TextBlock x:Name="ServerUrlHint" Text="{Binding Path=LocalizedResources.ServerAddress, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0" Visibility="Collapsed"/>
                 </Grid>
 
                 <StackPanel x:Name="CredentialsPanel">
                     <!-- Логин -->
                     <Grid Margin="-12,0,-12,12">
                         <TextBox x:Name="UsernameBox" InputScope="PersonalFullName" TextChanged="TextBox_TextChanged"/>
-                        <TextBlock x:Name="UsernameHint" Text="username" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                        <TextBlock x:Name="UsernameHint" Text="{Binding Path=LocalizedResources.Username, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
                     </Grid>
 
                     <!-- Email (для регистрации) -->
                     <StackPanel x:Name="EmailPanel" Visibility="Collapsed">
                         <Grid Margin="-12,0,-12,12">
                             <TextBox x:Name="EmailBox" InputScope="EmailSmtpAddress" TextChanged="TextBox_TextChanged"/>
-                            <TextBlock x:Name="EmailHint" Text="email" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                            <TextBlock x:Name="EmailHint" Text="{Binding Path=LocalizedResources.Email, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
                         </Grid>
                     </StackPanel>
 
                     <!-- Пароль -->
                     <Grid Margin="-12,0,-12,12">
                         <PasswordBox x:Name="PasswordBox" PasswordChanged="PasswordBox_PasswordChanged"/>
-                        <TextBlock x:Name="PasswordHint" Text="password" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                        <TextBlock x:Name="PasswordHint" Text="{Binding Path=LocalizedResources.Password, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
                     </Grid>
 
                     <!-- Повтор пароля (только для регистрации) -->
                     <StackPanel x:Name="PasswordRepeatPanel" Visibility="Collapsed">
                         <Grid Margin="-12,0,-12,12">
                             <PasswordBox x:Name="PasswordRepeatBox" PasswordChanged="PasswordRepeatBox_PasswordChanged"/>
-                            <TextBlock x:Name="PasswordRepeatHint" Text="repeat password" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                            <TextBlock x:Name="PasswordRepeatHint" Text="{Binding Path=LocalizedResources.RepeatPassword, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
                         </Grid>
                     </StackPanel>
                 </StackPanel>
@@ -111,11 +111,11 @@
                 <StackPanel x:Name="TokenPanel" Visibility="Collapsed">
                     <Grid Margin="-12,0,-12,12">
                         <TextBox x:Name="TokenBox" TextChanged="TextBox_TextChanged"/>
-                        <TextBlock x:Name="TokenHint" Text="api token" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
+                        <TextBlock x:Name="TokenHint" Text="{Binding Path=LocalizedResources.ApiToken, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="14,-2,0,0"/>
                     </Grid>
                 </StackPanel>
 
-                <Button x:Name="ActionBtn" Content="sign in" Margin="-12,0,-12,12" BorderThickness="2" Click="OnActionBtnClick"/>
+                <Button x:Name="ActionBtn" Content="{Binding Path=LocalizedResources.SignIn, Source={StaticResource LocalizedStrings}}" Margin="-12,0,-12,12" BorderThickness="2" Click="OnActionBtnClick"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

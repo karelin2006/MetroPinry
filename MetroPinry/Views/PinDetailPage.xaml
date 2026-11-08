@@ -14,7 +14,7 @@
         <shell:ProgressIndicator x:Name="AppProgressIndicator" 
                                  IsVisible="False" 
                                  IsIndeterminate="True" 
-                                 Text="MetroPinry"/>
+                                 Text="{Binding Path=LocalizedResources.AppTitle, Source={StaticResource LocalizedStrings}}"/>
     </shell:SystemTray.ProgressIndicator>
 
     <Grid x:Name="LayoutRoot" Background="{StaticResource PhoneBackgroundBrush}">
@@ -35,7 +35,7 @@
 
                 <!-- Описание пина -->
                 <TextBlock x:Name="PinDescription"
-                           Text="Описание"
+                           Text="—"
                            Style="{StaticResource PhoneTextTitle2Style}"
                            TextWrapping="Wrap"
                            Margin="0,0,0,16"/>
@@ -55,15 +55,24 @@
                     </Grid.RowDefinitions>
 
                     <!-- Автор -->
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="автор" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,12,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                               Text="{Binding Path=LocalizedResources.Author, Source={StaticResource LocalizedStrings}}" 
+                               Style="{StaticResource PhoneTextSubtleStyle}" 
+                               Margin="0,0,12,8"/>
                     <TextBlock x:Name="TxtAuthor" Grid.Row="0" Grid.Column="1" Text="—" FontWeight="SemiBold" Margin="0,0,0,8"/>
 
                     <!-- Теги -->
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="теги" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,12,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" 
+                               Text="{Binding Path=LocalizedResources.Tags, Source={StaticResource LocalizedStrings}}" 
+                               Style="{StaticResource PhoneTextSubtleStyle}" 
+                               Margin="0,0,12,8"/>
                     <TextBlock x:Name="TxtTags" Grid.Row="1" Grid.Column="1" Text="—" Foreground="{StaticResource PhoneAccentBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
                     <!-- Доступ -->
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="доступ" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,12,8"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" 
+                               Text="{Binding Path=LocalizedResources.Access, Source={StaticResource LocalizedStrings}}" 
+                               Style="{StaticResource PhoneTextSubtleStyle}" 
+                               Margin="0,0,12,8"/>
                     <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock x:Name="TxtVisibilityIcon" FontFamily="Segoe UI Symbol" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtVisibility" Text="—" VerticalAlignment="Center"/>
@@ -80,8 +89,8 @@
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/download.png" Text="download" Click="OnDownloadAppBarClick"/>
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/delete.png" Text="delete" Click="OnDeleteAppBarClick"/>
             <shell:ApplicationBar.MenuItems>
-                <shell:ApplicationBarMenuItem Text="прикрепить к доске..." Click="OnAttachBoardMenuClick"/>
-                <shell:ApplicationBarMenuItem Text="открепить от доски..." Click="OnDetachBoardMenuClick"/>
+                <shell:ApplicationBarMenuItem Text="attach to board..." Click="OnAttachBoardMenuClick"/>
+                <shell:ApplicationBarMenuItem Text="detach from board..." Click="OnDetachBoardMenuClick"/>
             </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>
     </phone:PhoneApplicationPage.ApplicationBar>

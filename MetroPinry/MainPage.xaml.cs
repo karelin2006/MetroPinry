@@ -4,18 +4,22 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Markup;
+using System.Windows.Media;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using MetroPinry.Models;
+using MetroPinry.Resources;
 using MetroPinry.Services;
 using MetroPinry.ViewModels;
 using MetroPinry.Views;
 
 namespace MetroPinry
 {
-    public partial class MainPage : PhoneApplicationPage
+    public partial class MainPage : PhoneApplicationPage, System.ComponentModel.INotifyPropertyChanged
     {
         private readonly ObservableCollection<Board> _filteredBoards = new ObservableCollection<Board>();
         private readonly ObservableCollection<Pin> _filteredPins = new ObservableCollection<Pin>();
@@ -27,6 +31,30 @@ namespace MetroPinry
         public MainViewModel ViewModel
         {
             get { return App.ViewModel; }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+
+        private void NotifyPropertyChanged(string propertyName)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+
+        private bool _hasReachedEnd;
+        public bool HasReachedEnd
+        {
+            get { return _hasReachedEnd; }
+            set
+            {
+                if (_hasReachedEnd != value)
+                {
+                    _hasReachedEnd = value;
+                    NotifyPropertyChanged("HasReachedEnd");
+                }
+            }
         }
 
         public MainPage()
@@ -42,6 +70,7 @@ namespace MetroPinry
                 if (!_isPageLoaded)
                 {
                     _isPageLoaded = true;
+                    UpdateAppBarLocalization();
                     UpdateAppBarButtons();
                 }
             };
@@ -50,6 +79,11 @@ namespace MetroPinry
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+
+            if (ApplicationBar != null)
+            {
+                ApplicationBar.IsVisible = true;
+            }
 
             if (e.NavigationMode == NavigationMode.Back)
             {
@@ -101,6 +135,7 @@ namespace MetroPinry
 
             if (!App.ViewModel.IsDataLoaded || App.ViewModel.RecentPins.Count == 0 || forceRefresh)
             {
+                HasReachedEnd = false;
                 await App.ViewModel.LoadDataAsync();
                 ResetFeedScrollToTop();
             }
@@ -110,6 +145,7 @@ namespace MetroPinry
                 PerformSearch(SearchBox.Text.Trim());
             }
 
+            UpdateAppBarLocalization();
             UpdateAppBarButtons();
         }
 
@@ -133,9 +169,27 @@ namespace MetroPinry
             });
         }
 
-        // ==========================================
-        // БЛОКИРОВКА СЛУЧАЙНЫХ ДЕЙСТВИЙ (ЧУЖИЕ ПИНЫ, ЧУЖИЕ ДОСКИ, ДОСКА ALL)
-        // ==========================================
+        private void UpdateAppBarLocalization()
+        {
+            if (ApplicationBar == null) return;
+
+            if (ApplicationBar.Buttons.Count >= 2)
+            {
+                var refreshBtn = ApplicationBar.Buttons[1] as ApplicationBarIconButton;
+                if (refreshBtn != null)
+                {
+                    refreshBtn.Text = AppResources.Refresh;
+                }
+            }
+
+            if (ApplicationBar.MenuItems.Count >= 4)
+            {
+                ((ApplicationBarMenuItem)ApplicationBar.MenuItems[0]).Text = AppResources.ManageAccounts;
+                ((ApplicationBarMenuItem)ApplicationBar.MenuItems[1]).Text = AppResources.AddAccount;
+                ((ApplicationBarMenuItem)ApplicationBar.MenuItems[2]).Text = AppResources.ChooseLanguage;
+                ((ApplicationBarMenuItem)ApplicationBar.MenuItems[3]).Text = AppResources.SignOut;
+            }
+        }
 
         private void OnItemHold(object sender, System.Windows.Input.GestureEventArgs e)
         {
@@ -170,18 +224,15 @@ namespace MetroPinry
             bool isGuest = settings.Contains("IsGuest") && (bool)settings["IsGuest"];
             if (isGuest) return true;
 
-            // 1. Проверка для пинов
             var pin = dataContext as Pin;
             if (pin != null)
             {
                 return !pin.IsMine;
             }
 
-            // 2. Проверка для досок
             var board = dataContext as Board;
             if (board != null)
             {
-                // Запрещено для виртуальной доски "all" (Id == -1) и чужих досок
                 if (board.Id == -1 || !board.IsMine)
                 {
                     return true;
@@ -190,10 +241,6 @@ namespace MetroPinry
 
             return false;
         }
-
-        // ==========================================
-        // ДЕЙСТВИЯ МЕНЮ
-        // ==========================================
 
         private void OnEditBoardContextClick(object sender, RoutedEventArgs e)
         {
@@ -216,8 +263,8 @@ namespace MetroPinry
             if (board == null || board.Id == -1 || !board.IsMine) return;
 
             var result = MessageBox.Show(
-                string.Format("Удалить доску \"{0}\"? Пины останутся в вашей ленте.", board.Name),
-                "Удаление доски",
+                string.Format(AppResources.DeleteBoardConfirmFormat, board.Name),
+                AppResources.Delete,
                 MessageBoxButton.OKCancel);
 
             if (result == MessageBoxResult.OK)
@@ -236,7 +283,7 @@ namespace MetroPinry
                 }
                 else
                 {
-                    MessageBox.Show("Не удалось удалить доску. Проверьте права доступа и сеть.", "Ошибка", MessageBoxButton.OK);
+                    MessageBox.Show("Error deleting board.", AppResources.AppTitle, MessageBoxButton.OK);
                 }
             }
         }
@@ -262,7 +309,7 @@ namespace MetroPinry
             var pin = menuItem.DataContext as Pin;
             if (pin == null || !pin.IsMine) return;
 
-            var result = MessageBox.Show("Удалить этот пин навсегда?", "Удаление пина", MessageBoxButton.OKCancel);
+            var result = MessageBox.Show(AppResources.DeletePinConfirm, AppResources.Delete, MessageBoxButton.OKCancel);
             if (result == MessageBoxResult.OK)
             {
                 var api = new PinryApiService();
@@ -291,14 +338,10 @@ namespace MetroPinry
                 }
                 else
                 {
-                    MessageBox.Show("Не удалось удалить пин.", "Ошибка", MessageBoxButton.OK);
+                    MessageBox.Show("Error deleting pin.", AppResources.AppTitle, MessageBoxButton.OK);
                 }
             }
         }
-
-        // ==========================================
-        // ПОИСК И НАВИГАЦИЯ
-        // ==========================================
 
         private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
         {
@@ -313,7 +356,7 @@ namespace MetroPinry
 
             if (string.IsNullOrWhiteSpace(query))
             {
-                SearchEmptyState.Text = "enter keywords or tags";
+                SearchEmptyState.Text = AppResources.SearchEmptyState;
                 SearchEmptyState.Visibility = Visibility.Visible;
                 FoundBoardsHeaderPanel.Visibility = Visibility.Collapsed;
                 FoundPinsHeaderPanel.Visibility = Visibility.Collapsed;
@@ -366,7 +409,7 @@ namespace MetroPinry
 
             if (!hasBoards && !hasPins)
             {
-                SearchEmptyState.Text = "no results found";
+                SearchEmptyState.Text = AppResources.NoResultsFound;
                 SearchEmptyState.Visibility = Visibility.Visible;
             }
             else
@@ -442,6 +485,7 @@ namespace MetroPinry
 
         private async void OnRefreshAppBarClick(object sender, EventArgs e)
         {
+            HasReachedEnd = false;
             await App.ViewModel.LoadDataAsync();
             if (SearchBox != null && !string.IsNullOrWhiteSpace(SearchBox.Text))
             {
@@ -470,21 +514,19 @@ namespace MetroPinry
 
                 switch (MainPanorama.SelectedIndex)
                 {
-                    case 1: // boards
-                        actionBtn.IconUri = new Uri("/Assets/AppBar/layot.png", UriKind.Relative);
-                        actionBtn.Text = "add board";
+                    case 1:
+                        actionBtn.IconUri = new Uri("/Assets/AppBar/layout.png", UriKind.Relative);
+                        actionBtn.Text = AppResources.AddBoard;
                         actionBtn.IsEnabled = true;
                         break;
-
-                    case 3: // me
+                    case 3:
                         actionBtn.IconUri = new Uri("/Assets/AppBar/smiley.kiki.png", UriKind.Relative);
-                        actionBtn.Text = "accounts";
+                        actionBtn.Text = AppResources.Accounts;
                         actionBtn.IsEnabled = true;
                         break;
-
-                    default: // feed & search
+                    default:
                         actionBtn.IconUri = new Uri("/Assets/AppBar/pin.png", UriKind.Relative);
-                        actionBtn.Text = "add pin";
+                        actionBtn.Text = AppResources.AddPin;
                         actionBtn.IsEnabled = true;
                         break;
                 }
@@ -535,7 +577,7 @@ namespace MetroPinry
             if (!string.IsNullOrEmpty(token))
             {
                 Clipboard.SetText(token);
-                MessageBox.Show("API токен скопирован в буфер обмена.", "Готово", MessageBoxButton.OK);
+                MessageBox.Show(AppResources.TokenCopied, AppResources.AppTitle, MessageBoxButton.OK);
             }
         }
 
@@ -544,9 +586,9 @@ namespace MetroPinry
             var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
             bool isGuest = settings.Contains("IsGuest") && (bool)settings["IsGuest"];
 
-            string message = isGuest ? "Покинуть гостевой режим и войти в аккаунт?" : "Выйти из текущего аккаунта?";
+            string message = isGuest ? AppResources.GuestSignOutConfirm : AppResources.SignOutConfirm;
 
-            var result = MessageBox.Show(message, "Выход", MessageBoxButton.OKCancel);
+            var result = MessageBox.Show(message, AppResources.SignOut, MessageBoxButton.OKCancel);
             if (result == MessageBoxResult.OK)
             {
                 StorageService.AuthToken = null;
@@ -570,7 +612,7 @@ namespace MetroPinry
 
         private async void FeedList_ItemRealized(object sender, ItemRealizationEventArgs e)
         {
-            if (App.ViewModel.IsLoadingMore) return;
+            if (App.ViewModel.IsLoadingMore || HasReachedEnd) return;
 
             var pin = e.Container.Content as Pin;
             if (pin != null && App.ViewModel.RecentPins != null && App.ViewModel.RecentPins.Count > 0)
@@ -580,9 +622,153 @@ namespace MetroPinry
 
                 if (currentIdx >= total - 3)
                 {
+                    int beforeCount = App.ViewModel.RecentPins.Count;
                     await App.ViewModel.LoadMorePinsAsync();
+                    int afterCount = App.ViewModel.RecentPins.Count;
+
+                    if (beforeCount == afterCount)
+                    {
+                        HasReachedEnd = true;
+                    }
                 }
             }
+        }
+
+        private void OnSwitchLanguageMenuClick(object sender, EventArgs e)
+        {
+            var currentCulture = System.Threading.Thread.CurrentThread.CurrentUICulture.Name;
+
+            var availableLanguages = new List<LanguageItem>
+            {
+                new LanguageItem { Code = "en-US", NativeName = "English" },
+                new LanguageItem { Code = "ru", NativeName = "Русский" }
+            };
+
+            var stack = new StackPanel { Margin = new Thickness(12, 12, 12, 0) };
+
+            var messageBox = new CustomMessageBox
+            {
+                Title = AppResources.AppTitle,
+                Message = AppResources.ChooseLanguage,
+                Content = stack,
+                LeftButtonContent = AppResources.Cancel,
+                IsFullScreen = false
+            };
+
+            string selectedLanguageCode = null;
+
+            foreach (var lang in availableLanguages)
+            {
+                bool isCurrent = currentCulture.StartsWith(lang.Code.Substring(0, 2), StringComparison.OrdinalIgnoreCase);
+
+                var btn = new Button
+                {
+                    Content = lang.NativeName,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Margin = new Thickness(-12, 0, -12, 8),
+                    BorderThickness = new Thickness(0),
+                    FontSize = 26,
+                    FontFamily = new System.Windows.Media.FontFamily("Segoe WP SemiLight")
+                };
+
+                if (isCurrent)
+                {
+                    btn.Foreground = (System.Windows.Media.Brush)Application.Current.Resources["PhoneAccentBrush"];
+                }
+
+                string code = lang.Code;
+                btn.Click += (s, args) =>
+                {
+                    selectedLanguageCode = code;
+                    messageBox.Dismiss();
+                };
+
+                stack.Children.Add(btn);
+            }
+
+            messageBox.Dismissed += (s, args) =>
+            {
+                if (!string.IsNullOrEmpty(selectedLanguageCode))
+                {
+                    ApplyNewLanguage(selectedLanguageCode);
+                }
+                else if (ApplicationBar != null)
+                {
+                    ApplicationBar.IsVisible = true;
+                }
+            };
+
+            messageBox.Show();
+        }
+
+        private void ApplyNewLanguage(string targetLang)
+        {
+            var currentCulture = System.Threading.Thread.CurrentThread.CurrentUICulture.Name;
+            if (currentCulture.Equals(targetLang, StringComparison.OrdinalIgnoreCase)) return;
+
+            var settings = System.IO.IsolatedStorage.IsolatedStorageSettings.ApplicationSettings;
+            settings["AppLanguage"] = targetLang;
+            settings.Save();
+
+            var culture = new System.Globalization.CultureInfo(targetLang);
+            System.Threading.Thread.CurrentThread.CurrentCulture = culture;
+            System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
+
+            var frame = Application.Current.RootVisual as PhoneApplicationFrame;
+            if (frame != null)
+            {
+                frame.Language = XmlLanguage.GetLanguage(culture.Name);
+            }
+
+            LocalizedStrings.UpdateLanguage();
+
+            var currentVm = this.DataContext;
+            this.DataContext = null;
+            this.DataContext = currentVm;
+
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (ApplicationBar != null)
+                {
+                    ApplicationBar.IsVisible = true;
+                    UpdateAppBarLocalization();
+                    UpdateAppBarButtons();
+                }
+            });
+        }
+
+        private void HideScrollBar(DependencyObject parent)
+        {
+            if (parent == null) return;
+
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                var scrollBar = child as ScrollBar;
+
+                // Полный путь до Orientation снимает конфликт с PageOrientation
+                if (scrollBar != null && scrollBar.Orientation == System.Windows.Controls.Orientation.Vertical)
+                {
+                    scrollBar.Visibility = Visibility.Collapsed;
+                    scrollBar.Width = 0;
+                    scrollBar.Opacity = 0;
+                    scrollBar.IsHitTestVisible = false;
+                }
+
+                HideScrollBar(child);
+            }
+        }
+
+        private void MainPanorama_Loaded(object sender, RoutedEventArgs e)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (FeedList != null)
+                {
+                    HideScrollBar(FeedList);
+                }
+            });
         }
     }
 }

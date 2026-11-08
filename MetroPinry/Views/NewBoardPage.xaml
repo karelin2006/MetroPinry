@@ -10,9 +10,12 @@
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
 
-    <phone:PhoneApplicationPage.Resources>
-        <shell:ProgressIndicator x:Key="ProgressIndicator" IsVisible="False" IsIndeterminate="True" Text="creating board..."/>
-    </phone:PhoneApplicationPage.Resources>
+    <shell:SystemTray.ProgressIndicator>
+        <shell:ProgressIndicator x:Name="BoardProgressIndicator" 
+                                 IsVisible="False" 
+                                 IsIndeterminate="True" 
+                                 Text="{Binding Path=LocalizedResources.AppTitle, Source={StaticResource LocalizedStrings}}"/>
+    </shell:SystemTray.ProgressIndicator>
 
     <Grid x:Name="LayoutRoot" Background="Transparent">
         <Grid.RowDefinitions>
@@ -22,8 +25,8 @@
 
         <!-- Заголовок -->
         <StackPanel Grid.Row="0" Margin="18,17,0,10">
-            <TextBlock Text="metropinry" Style="{StaticResource PhoneTextNormalStyle}"/>
-            <TextBlock Text="new board" Margin="0,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+            <TextBlock Text="{Binding Path=LocalizedResources.AppTitle, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="PageTitle" Text="{Binding Path=LocalizedResources.CreateBoard, Source={StaticResource LocalizedStrings}}" Margin="0,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
 
         <!-- Форма -->
@@ -31,14 +34,14 @@
             <StackPanel Margin="6,24,6,24">
 
                 <!-- Название доски -->
-                <TextBlock Text="board name" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,0,0,0"/>
+                <TextBlock Text="{Binding Path=LocalizedResources.BoardName, Source={StaticResource LocalizedStrings}}" Style="{StaticResource PhoneTextSubtleStyle}" Margin="6,0,0,0"/>
                 <TextBox x:Name="TxtBoardName" 
                          Margin="-6,0,-6,24"
                          MaxLength="100"/>
 
                 <!-- Опция скрытой доски -->
                 <CheckBox x:Name="ChkIsPrivate" 
-                          Content="private (hidden from others)" 
+                          Content="{Binding Path=LocalizedResources.PrivateBoardOption, Source={StaticResource LocalizedStrings}}" 
                           Margin="-12,0,0,12"/>
 
             </StackPanel>

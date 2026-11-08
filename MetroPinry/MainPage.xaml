@@ -1,21 +1,27 @@
 ﻿<phone:PhoneApplicationPage
+    x:Name="RootPage"
     x:Class="MetroPinry.MainPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
     xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
+    xmlns:local="clr-namespace:MetroPinry"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="False">
 
+    <phone:PhoneApplicationPage.Resources>
+        <local:BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </phone:PhoneApplicationPage.Resources>
+
     <Grid x:Name="LayoutRoot" Background="Transparent">
-        <phone:Panorama x:Name="MainPanorama" Title="metropinry" SelectionChanged="MainPanorama_SelectionChanged">
+        <phone:Panorama x:Name="MainPanorama" 
+                        Title="{Binding Path=LocalizedResources.AppTitle, Source={StaticResource LocalizedStrings}}" 
+                        SelectionChanged="MainPanorama_SelectionChanged" 
+                        Loaded="MainPanorama_Loaded">
             <phone:Panorama.Background>
                 <ImageBrush ImageSource="/MetroPinry;component/Assets/PanoramaDarkGrain.png" 
                             Opacity="0.4" 
@@ -23,12 +29,31 @@
             </phone:Panorama.Background>
 
             <!-- СЕКЦИЯ 1: Лента всех пинов -->
-            <phone:PanoramaItem Header="feed" Width="380">
+            <phone:PanoramaItem Header="{Binding Path=LocalizedResources.PanoramaFeed, Source={StaticResource LocalizedStrings}}" Width="380">
                 <phone:LongListSelector x:Name="FeedList"
                                         Margin="12,0,0,0"
                                         ItemsSource="{Binding RecentPins}"
                                         ItemRealized="FeedList_ItemRealized"
                                         SelectionChanged="OnPinSelectionChanged">
+
+                    <phone:LongListSelector.ListFooterTemplate>
+                        <DataTemplate>
+                            <Grid Height="90" 
+                                  Margin="0,16,16,40"
+                                  HorizontalAlignment="Stretch"
+                                  Visibility="{Binding HasReachedEnd, ElementName=RootPage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <TextBlock Text="- end -" 
+                                           FontSize="22" 
+                                           FontWeight="Light"
+                                           FontFamily="Segoe WP"
+                                           Opacity="0.45"
+                                           HorizontalAlignment="Center" 
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource PhoneForegroundBrush}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </phone:LongListSelector.ListFooterTemplate>
+
                     <phone:LongListSelector.ItemTemplate>
                         <DataTemplate>
                             <Border Margin="0,0,16,14" 
@@ -37,8 +62,8 @@
                                     Hold="OnItemHold">
                                 <toolkit:ContextMenuService.ContextMenu>
                                     <toolkit:ContextMenu Opened="OnContextMenuOpened">
-                                        <toolkit:MenuItem Header="edit" Click="OnEditPinContextClick"/>
-                                        <toolkit:MenuItem Header="delete" Click="OnDeletePinContextClick"/>
+                                        <toolkit:MenuItem Header="{Binding Path=LocalizedResources.Edit, Source={StaticResource LocalizedStrings}}" Click="OnEditPinContextClick"/>
+                                        <toolkit:MenuItem Header="{Binding Path=LocalizedResources.Delete, Source={StaticResource LocalizedStrings}}" Click="OnDeletePinContextClick"/>
                                     </toolkit:ContextMenu>
                                 </toolkit:ContextMenuService.ContextMenu>
                                 <StackPanel>
@@ -65,7 +90,7 @@
             </phone:PanoramaItem>
 
             <!-- СЕКЦИЯ 2: Все публичные доски -->
-            <phone:PanoramaItem Header="boards" Width="420">
+            <phone:PanoramaItem Header="{Binding Path=LocalizedResources.PanoramaBoards, Source={StaticResource LocalizedStrings}}" Width="420">
                 <phone:LongListSelector Margin="12,0,0,0"
                                         ItemsSource="{Binding Boards}"
                                         LayoutMode="Grid" 
@@ -80,8 +105,8 @@
                                   Hold="OnItemHold">
                                 <toolkit:ContextMenuService.ContextMenu>
                                     <toolkit:ContextMenu Opened="OnContextMenuOpened">
-                                        <toolkit:MenuItem Header="edit" Click="OnEditBoardContextClick"/>
-                                        <toolkit:MenuItem Header="delete" Click="OnDeleteBoardContextClick"/>
+                                        <toolkit:MenuItem Header="{Binding Path=LocalizedResources.Edit, Source={StaticResource LocalizedStrings}}" Click="OnEditBoardContextClick"/>
+                                        <toolkit:MenuItem Header="{Binding Path=LocalizedResources.Delete, Source={StaticResource LocalizedStrings}}" Click="OnDeleteBoardContextClick"/>
                                     </toolkit:ContextMenu>
                                 </toolkit:ContextMenuService.ContextMenu>
 
@@ -114,7 +139,7 @@
             </phone:PanoramaItem>
 
             <!-- СЕКЦИЯ 3: Поиск -->
-            <phone:PanoramaItem Header="search" Width="380">
+            <phone:PanoramaItem Header="{Binding Path=LocalizedResources.PanoramaSearch, Source={StaticResource LocalizedStrings}}" Width="380">
                 <Grid Margin="12,0,16,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -124,7 +149,7 @@
                     <toolkit:PhoneTextBox x:Name="SearchBox"
                                           Grid.Row="0"
                                           Margin="-12,-8,-12,12"
-                                          Hint="type to search..."
+                                          Hint="{Binding Path=LocalizedResources.SearchHint, Source={StaticResource LocalizedStrings}}"
                                           InputScope="Search"
                                           TextChanged="OnSearchTextChanged"/>
 
@@ -132,12 +157,12 @@
                         <StackPanel Margin="0,4,0,24">
 
                             <TextBlock x:Name="SearchEmptyState"
-                                       Text="enter keywords or tags"
+                                       Text="{Binding Path=LocalizedResources.SearchEmptyState, Source={StaticResource LocalizedStrings}}"
                                        Style="{StaticResource PhoneTextSubtleStyle}"
                                        Margin="0,16,0,0"/>
 
                             <StackPanel x:Name="FoundBoardsHeaderPanel" Visibility="Collapsed" Margin="0,0,0,20">
-                                <TextBlock Text="boards" 
+                                <TextBlock Text="{Binding Path=LocalizedResources.PanoramaBoards, Source={StaticResource LocalizedStrings}}" 
                                            Style="{StaticResource PhoneTextGroupHeaderStyle}" 
                                            Margin="0,0,0,8"/>
 
@@ -146,13 +171,13 @@
                                         <DataTemplate>
                                             <StackPanel Margin="0,0,0,14" Tap="OnFoundBoardTap">
                                                 <TextBlock Text="{Binding Name}" 
-                                                           FontSize="24" 
-                                                           FontWeight="Normal" 
-                                                           Foreground="{StaticResource PhoneForegroundBrush}"
-                                                           TextTrimming="WordEllipsis"/>
+                                                    FontSize="24" 
+                                                    FontWeight="Normal" 
+                                                    Foreground="{StaticResource PhoneForegroundBrush}"
+                                                    TextTrimming="WordEllipsis"/>
                                                 <TextBlock Text="{Binding PinsCount, StringFormat='{}{0} pins'}" 
-                                                           Style="{StaticResource PhoneTextSubtleStyle}" 
-                                                           FontSize="14"/>
+                                                    Style="{StaticResource PhoneTextSubtleStyle}" 
+                                                    FontSize="14"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -160,7 +185,7 @@
                             </StackPanel>
 
                             <StackPanel x:Name="FoundPinsHeaderPanel" Visibility="Collapsed">
-                                <TextBlock Text="pins" 
+                                <TextBlock Text="{Binding Path=LocalizedResources.PanoramaFeed, Source={StaticResource LocalizedStrings}}" 
                                            Style="{StaticResource PhoneTextGroupHeaderStyle}" 
                                            Margin="0,0,0,12"/>
 
@@ -196,8 +221,8 @@
                 </Grid>
             </phone:PanoramaItem>
 
-            <!-- СЕКЦИЯ 4: Профиль пользователя и его доски (с виртуальной доской "all") -->
-            <phone:PanoramaItem Header="me" Width="440">
+            <!-- СЕКЦИЯ 4: Профиль пользователя -->
+            <phone:PanoramaItem Header="{Binding Path=LocalizedResources.PanoramaMe, Source={StaticResource LocalizedStrings}}" Width="440">
                 <Grid Margin="12,0,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -220,7 +245,7 @@
                                 Margin="0,0,0,8"
                                 Tap="OnTokenTap">
                             <StackPanel>
-                                <TextBlock Text="api token (tap to copy)" 
+                                <TextBlock Text="{Binding Path=LocalizedResources.ApiTokenTapToCopy, Source={StaticResource LocalizedStrings}}" 
                                            Style="{StaticResource PhoneTextSubtleStyle}" 
                                            FontSize="11"/>
                                 <TextBlock Text="{Binding CurrentUser.Token}" 
@@ -231,12 +256,11 @@
                             </StackPanel>
                         </Border>
 
-                        <TextBlock Text="my boards" 
+                        <TextBlock Text="{Binding Path=LocalizedResources.MyBoards, Source={StaticResource LocalizedStrings}}" 
                                    Style="{StaticResource PhoneTextGroupHeaderStyle}" 
                                    Margin="0,4,0,2"/>
                     </StackPanel>
 
-                    <!-- Сетка своих досок -->
                     <phone:LongListSelector Grid.Row="1"
                                             ItemsSource="{Binding UserBoardsWithAll}"
                                             LayoutMode="Grid"
@@ -252,8 +276,8 @@
                                       Hold="OnItemHold">
                                     <toolkit:ContextMenuService.ContextMenu>
                                         <toolkit:ContextMenu Opened="OnContextMenuOpened">
-                                            <toolkit:MenuItem Header="edit" Click="OnEditBoardContextClick"/>
-                                            <toolkit:MenuItem Header="delete" Click="OnDeleteBoardContextClick"/>
+                                            <toolkit:MenuItem Header="{Binding Path=LocalizedResources.Edit, Source={StaticResource LocalizedStrings}}" Click="OnEditBoardContextClick"/>
+                                            <toolkit:MenuItem Header="{Binding Path=LocalizedResources.Delete, Source={StaticResource LocalizedStrings}}" Click="OnDeleteBoardContextClick"/>
                                         </toolkit:ContextMenu>
                                     </toolkit:ContextMenuService.ContextMenu>
 
@@ -289,12 +313,13 @@
     </Grid>
 
     <phone:PhoneApplicationPage.ApplicationBar>
-        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" Mode="Default">
-            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/add.png" Text="add pin" Click="OnAddAppBarClick"/>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" Mode="Default" Opacity="0.99">
+            <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/pin.png" Text="add" Click="OnAddAppBarClick"/>
             <shell:ApplicationBarIconButton IconUri="/Assets/AppBar/refresh.png" Text="refresh" Click="OnRefreshAppBarClick"/>
             <shell:ApplicationBar.MenuItems>
                 <shell:ApplicationBarMenuItem Text="manage accounts" Click="OnAccountsAppBarClick"/>
                 <shell:ApplicationBarMenuItem Text="add account" Click="OnAddAccountMenuClick"/>
+                <shell:ApplicationBarMenuItem Text="switch language" Click="OnSwitchLanguageMenuClick"/>
                 <shell:ApplicationBarMenuItem Text="sign out" Click="OnSignOutMenuClick"/>
             </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>

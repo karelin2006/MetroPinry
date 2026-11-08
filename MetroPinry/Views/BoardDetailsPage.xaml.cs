@@ -9,6 +9,7 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using MetroPinry.Models;
+using MetroPinry.Resources;
 using MetroPinry.Services;
 
 namespace MetroPinry.Views
@@ -33,7 +34,6 @@ namespace MetroPinry.Views
                 UpdateBoardHeader();
                 ConfigureAppBar();
 
-                // Загружаем данные только при первичном входе на страницу, не перезагружая при возврате назад
                 if (e.NavigationMode != NavigationMode.Back)
                 {
                     await LoadPinsAsync();
@@ -120,21 +120,33 @@ namespace MetroPinry.Views
 
             bool isVirtual = (SelectedBoard.Id == -1);
 
-            foreach (var button in ApplicationBar.Buttons.OfType<ApplicationBarIconButton>())
+            if (ApplicationBar.Buttons.Count >= 4)
             {
-                string txt = (button.Text ?? string.Empty).ToLowerInvariant();
-                if (txt.Contains("edit") || txt.Contains("delete"))
-                {
-                    button.IsEnabled = !isVirtual && SelectedBoard.IsMine;
-                }
-            }
+                var addBtn = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
+                var editBtn = ApplicationBar.Buttons[1] as ApplicationBarIconButton;
+                var deleteBtn = ApplicationBar.Buttons[2] as ApplicationBarIconButton;
+                var refreshBtn = ApplicationBar.Buttons[3] as ApplicationBarIconButton;
 
-            foreach (var item in ApplicationBar.MenuItems.OfType<ApplicationBarMenuItem>())
-            {
-                string txt = (item.Text ?? string.Empty).ToLowerInvariant();
-                if (txt.Contains("edit") || txt.Contains("delete"))
+                if (addBtn != null)
                 {
-                    item.IsEnabled = !isVirtual && SelectedBoard.IsMine;
+                    addBtn.Text = AppResources.AddPin;
+                }
+
+                if (editBtn != null)
+                {
+                    editBtn.Text = AppResources.Edit;
+                    editBtn.IsEnabled = !isVirtual && SelectedBoard.IsMine;
+                }
+
+                if (deleteBtn != null)
+                {
+                    deleteBtn.Text = AppResources.Delete;
+                    deleteBtn.IsEnabled = !isVirtual && SelectedBoard.IsMine;
+                }
+
+                if (refreshBtn != null)
+                {
+                    refreshBtn.Text = AppResources.Refresh;
                 }
             }
         }
@@ -147,6 +159,7 @@ namespace MetroPinry.Views
             var pin = selector.SelectedItem as Pin;
             selector.SelectedItem = null;
 
+            PinDetailPage.SourceBoard = SelectedBoard; // Указываем, из какой доски открыт пин
             PinDetailPage.SelectedPin = pin;
             NavigationService.Navigate(new Uri("/Views/PinDetailPage.xaml", UriKind.Relative));
         }
@@ -156,7 +169,6 @@ namespace MetroPinry.Views
             if (SelectedBoard == null) return;
 
             NewPinPage.PinToEdit = null;
-            // Если доска "all", передаем null, чтобы пользователь выбрал конкретную доску вручную
             NewPinPage.PreselectedBoard = (SelectedBoard.Id == -1) ? null : SelectedBoard;
 
             NavigationService.Navigate(new Uri("/Views/NewPinPage.xaml", UriKind.Relative));
@@ -190,8 +202,7 @@ namespace MetroPinry.Views
             var pin = menuItem.DataContext as Pin;
             if (pin == null) return;
 
-            string title = string.IsNullOrEmpty(pin.Description) ? "этот пин" : "\"" + pin.Description + "\"";
-            var result = MessageBox.Show(string.Format("Удалить {0}? Действие нельзя отменить.", title), "Удаление", MessageBoxButton.OKCancel);
+            var result = MessageBox.Show(AppResources.DeletePinConfirm, AppResources.Delete, MessageBoxButton.OKCancel);
 
             if (result == MessageBoxResult.OK)
             {
@@ -221,7 +232,7 @@ namespace MetroPinry.Views
                 }
                 else
                 {
-                    MessageBox.Show("Не удалось удалить пин. Проверьте права доступа.", "Ошибка", MessageBoxButton.OK);
+                    MessageBox.Show("Error deleting pin.", AppResources.AppTitle, MessageBoxButton.OK);
                 }
             }
         }
@@ -236,8 +247,8 @@ namespace MetroPinry.Views
             if (SelectedBoard == null || SelectedBoard.Id == -1) return;
 
             var result = MessageBox.Show(
-                string.Format("Вы действительно хотите удалить доску \"{0}\"? Пины останутся в вашей ленте, но доска будет удалена.", SelectedBoard.Name),
-                "Удаление доски",
+                string.Format(AppResources.DeleteBoardConfirmFormat, SelectedBoard.Name),
+                AppResources.Delete,
                 MessageBoxButton.OKCancel);
 
             if (result != MessageBoxResult.OK) return;
@@ -281,7 +292,7 @@ namespace MetroPinry.Views
             }
             else
             {
-                MessageBox.Show("Не удалось удалить доску. Проверьте права доступа и сеть.", "Ошибка", MessageBoxButton.OK);
+                MessageBox.Show("Error deleting board.", AppResources.AppTitle, MessageBoxButton.OK);
             }
         }
     }

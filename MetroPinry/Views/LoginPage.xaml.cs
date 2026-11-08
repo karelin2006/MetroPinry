@@ -6,6 +6,7 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using MetroPinry.Models;
+using MetroPinry.Resources;
 using MetroPinry.Services;
 
 namespace MetroPinry.Views
@@ -23,6 +24,8 @@ namespace MetroPinry.Views
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+
+            UpdateAppBarMenuLocalization();
 
             bool isAddMode = NavigationContext.QueryString.ContainsKey("mode") && NavigationContext.QueryString["mode"] == "add";
 
@@ -49,6 +52,21 @@ namespace MetroPinry.Views
             RefreshSavedAccountsList(isAddMode);
         }
 
+        private void UpdateAppBarMenuLocalization()
+        {
+            if (ApplicationBar == null || ApplicationBar.MenuItems.Count < 4) return;
+
+            var toggleMenu = (ApplicationBarMenuItem)ApplicationBar.MenuItems[0];
+            var tokenMenu = (ApplicationBarMenuItem)ApplicationBar.MenuItems[1];
+            var guestMenu = (ApplicationBarMenuItem)ApplicationBar.MenuItems[2];
+            var accountsMenu = (ApplicationBarMenuItem)ApplicationBar.MenuItems[3];
+
+            toggleMenu.Text = _isRegisterMode ? AppResources.SwitchToSignIn : AppResources.CreateAccount;
+            tokenMenu.Text = _isTokenMode ? AppResources.UsePassword : AppResources.UseApiToken;
+            guestMenu.Text = AppResources.BrowseAsGuest;
+            accountsMenu.Text = AppResources.ManageAccounts;
+        }
+
         private void RefreshSavedAccountsList(bool isAddMode)
         {
             var accounts = StorageService.Accounts;
@@ -64,13 +82,11 @@ namespace MetroPinry.Views
             }
         }
 
-        // БЫСТРЫЙ ВХОД ПО КЛИКУ НА СОХРАНЕННЫЙ АККАУНТ
         private async void OnSavedAccountTap(object sender, System.Windows.Input.GestureEventArgs e)
         {
             var element = sender as FrameworkElement;
             if (element == null) return;
 
-            // Используем существующий PinryAccount
             var account = element.DataContext as PinryAccount;
             if (account == null) return;
 
@@ -102,13 +118,13 @@ namespace MetroPinry.Views
                 else
                 {
                     StorageService.AuthToken = null;
-                    MessageBox.Show("Не удалось войти в этот аккаунт. Возможно, токен устарел или сервер временно недоступен.", "Ошибка входа", MessageBoxButton.OK);
+                    MessageBox.Show("Unable to sign in. Token might be expired or server is unreachable.", AppResources.SignIn, MessageBoxButton.OK);
                 }
             }
             catch (Exception ex)
             {
                 StorageService.AuthToken = null;
-                MessageBox.Show("Ошибка входа: " + ex.Message, "Ошибка", MessageBoxButton.OK);
+                MessageBox.Show(ex.Message, AppResources.AppTitle, MessageBoxButton.OK);
             }
             finally
             {
@@ -125,7 +141,7 @@ namespace MetroPinry.Views
 
             if (string.IsNullOrWhiteSpace(serverUrl) || serverUrl == "https://" || serverUrl == "http://")
             {
-                MessageBox.Show("Введите адрес сервера.");
+                MessageBox.Show(AppResources.ServerAddress, AppResources.AppTitle, MessageBoxButton.OK);
                 return;
             }
 
@@ -146,20 +162,20 @@ namespace MetroPinry.Views
             {
                 if (string.IsNullOrWhiteSpace(token))
                 {
-                    MessageBox.Show("Введите API токен.");
+                    MessageBox.Show(AppResources.ApiToken, AppResources.AppTitle, MessageBoxButton.OK);
                     return;
                 }
             }
             else if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) ||
                     (_isRegisterMode && (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(passwordRepeat))))
             {
-                MessageBox.Show("Пожалуйста, заполните все поля.");
+                MessageBox.Show("Please fill in all fields.", AppResources.AppTitle, MessageBoxButton.OK);
                 return;
             }
 
             if (_isRegisterMode && password != passwordRepeat)
             {
-                MessageBox.Show("Пароли не совпадают.");
+                MessageBox.Show("Passwords do not match.", AppResources.SignUp, MessageBoxButton.OK);
                 return;
             }
 
@@ -194,7 +210,7 @@ namespace MetroPinry.Views
                     else
                     {
                         StorageService.AuthToken = null;
-                        throw new Exception("Неверный токен или сервер недоступен.");
+                        throw new Exception("Invalid token or server is unreachable.");
                     }
                 }
                 else if (_isRegisterMode)
@@ -224,7 +240,7 @@ namespace MetroPinry.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK);
+                MessageBox.Show(ex.Message, AppResources.AppTitle, MessageBoxButton.OK);
             }
             finally
             {
@@ -264,17 +280,17 @@ namespace MetroPinry.Views
 
             if (_isRegisterMode)
             {
-                PageTitle.Text = "sign up";
-                ActionBtn.Content = "register";
-                toggleMenu.Text = "switch to sign in";
+                PageTitle.Text = AppResources.SignUp;
+                ActionBtn.Content = AppResources.SignUp;
+                toggleMenu.Text = AppResources.SwitchToSignIn;
                 EmailPanel.Visibility = Visibility.Visible;
                 PasswordRepeatPanel.Visibility = Visibility.Visible;
             }
             else
             {
-                PageTitle.Text = "sign in";
-                ActionBtn.Content = "sign in";
-                toggleMenu.Text = "create account";
+                PageTitle.Text = AppResources.SignIn;
+                ActionBtn.Content = AppResources.SignIn;
+                toggleMenu.Text = AppResources.CreateAccount;
                 EmailPanel.Visibility = Visibility.Collapsed;
                 PasswordRepeatPanel.Visibility = Visibility.Collapsed;
             }
@@ -289,7 +305,7 @@ namespace MetroPinry.Views
             {
                 CredentialsPanel.Visibility = Visibility.Collapsed;
                 TokenPanel.Visibility = Visibility.Visible;
-                tokenMenu.Text = "use password";
+                tokenMenu.Text = AppResources.UsePassword;
                 EmailPanel.Visibility = Visibility.Collapsed;
                 PasswordRepeatPanel.Visibility = Visibility.Collapsed;
             }
@@ -297,7 +313,7 @@ namespace MetroPinry.Views
             {
                 CredentialsPanel.Visibility = Visibility.Visible;
                 TokenPanel.Visibility = Visibility.Collapsed;
-                tokenMenu.Text = "use api token";
+                tokenMenu.Text = AppResources.UseApiToken;
 
                 if (_isRegisterMode)
                 {
@@ -317,7 +333,7 @@ namespace MetroPinry.Views
             }
             if (string.IsNullOrWhiteSpace(serverUrl) || serverUrl == "https://" || serverUrl == "http://")
             {
-                MessageBox.Show("Укажите адрес сервера для просмотра.");
+                MessageBox.Show(AppResources.ServerAddress, AppResources.AppTitle, MessageBoxButton.OK);
                 return;
             }
 

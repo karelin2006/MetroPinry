@@ -11,6 +11,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using Microsoft.Phone.Tasks;
 using MetroPinry.Models;
+using MetroPinry.Resources;
 using MetroPinry.Services;
 
 namespace MetroPinry.Views
@@ -25,7 +26,22 @@ namespace MetroPinry.Views
         private List<string> _allAvailableTags = new List<string>();
         private bool _isUpdatingTagsText = false;
 
-        private static readonly Board NoneBoardOption = new Board { Id = 0, Name = "(none)" };
+        private static Board _noneBoardOption;
+        private static Board NoneBoardOption
+        {
+            get
+            {
+                if (_noneBoardOption == null)
+                {
+                    _noneBoardOption = new Board { Id = 0, Name = AppResources.NoneOption };
+                }
+                else
+                {
+                    _noneBoardOption.Name = AppResources.NoneOption;
+                }
+                return _noneBoardOption;
+            }
+        }
 
         public NewPinPage()
         {
@@ -40,19 +56,20 @@ namespace MetroPinry.Views
         {
             base.OnNavigatedTo(e);
 
+            UpdateAppBarLocalization();
+
             if (e.NavigationMode == NavigationMode.Refresh)
             {
                 return;
             }
 
-            // 1. Инициализация списка досок: ТОЛЬКО СВОИ ДОСКИ
+            // Инициализация списка досок
             if (PreselectedBoard != null)
             {
                 BoardPicker.ItemsSource = new List<Board> { PreselectedBoard };
                 BoardPicker.SelectedItem = PreselectedBoard;
                 BoardPicker.IsEnabled = false;
 
-                // Наследуем скрытность предвыбранной доски
                 if (PinToEdit == null && PreselectedBoard.IsPrivate)
                 {
                     ChkIsPrivate.IsChecked = true;
@@ -63,7 +80,6 @@ namespace MetroPinry.Views
                 var availableBoards = new List<Board> { NoneBoardOption };
                 if (App.ViewModel.Boards != null)
                 {
-                    // Исключаем чужие доски, куда запись запрещена сервером
                     availableBoards.AddRange(App.ViewModel.Boards.Where(b => b.IsMine));
                 }
 
@@ -82,11 +98,10 @@ namespace MetroPinry.Views
                 }
             }
 
-            // 2. Настройка UI под создание или редактирование
+            // Настройка UI под создание или редактирование
             if (PinToEdit != null)
             {
-                PageTitle.Text = "edit pin";
-
+                PageTitle.Text = AppResources.EditPin;
                 TxtDescription.Text = PinToEdit.Description ?? string.Empty;
                 ChkIsPrivate.IsChecked = PinToEdit.IsPrivate;
 
@@ -107,35 +122,18 @@ namespace MetroPinry.Views
                 BtnPickImage.IsEnabled = false;
                 BtnClearImage.Visibility = Visibility.Collapsed;
 
-                bool foundBoard = false;
-                if (App.ViewModel.Boards != null)
-                {
-                    foreach (var b in App.ViewModel.Boards.Where(x => x.IsMine))
-                    {
-                        if (PinToEdit.BelongsToBoard(b.Id, b.Name))
-                        {
-                            BoardPicker.SelectedItem = b;
-                            foundBoard = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!foundBoard && PreselectedBoard == null)
-                {
-                    BoardPicker.SelectedItem = NoneBoardOption;
-                }
+                // Скрываем выбор доски при редактировании
+                BoardSelectionPanel.Visibility = Visibility.Collapsed;
             }
             else
             {
-                PageTitle.Text = "add pin";
+                PageTitle.Text = AppResources.AddPin;
                 BtnPickImage.IsEnabled = true;
                 UpdateImageSourceControls();
+                BoardSelectionPanel.Visibility = Visibility.Visible;
             }
 
-            // Подписка на изменение доски для автонаследования приватности
             BoardPicker.SelectionChanged += OnBoardPickerSelectionChanged;
-
             LoadAvailableTags();
         }
 
@@ -153,6 +151,15 @@ namespace MetroPinry.Views
             }
         }
 
+        private void UpdateAppBarLocalization()
+        {
+            if (ApplicationBar == null || ApplicationBar.Buttons.Count < 2) return;
+            var saveBtn = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
+            var cancelBtn = ApplicationBar.Buttons[1] as ApplicationBarIconButton;
+            if (saveBtn != null) saveBtn.Text = AppResources.Save;
+            if (cancelBtn != null) cancelBtn.Text = AppResources.Cancel;
+        }
+
         private void OnBoardPickerSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (PinToEdit != null) return;
@@ -160,7 +167,6 @@ namespace MetroPinry.Views
             var chosen = BoardPicker.SelectedItem as Board;
             if (chosen != null && chosen.Id > 0 && chosen.IsPrivate)
             {
-                // Если выбрана приватная доска — пин автоматически скрывается
                 ChkIsPrivate.IsChecked = true;
             }
         }
@@ -204,7 +210,6 @@ namespace MetroPinry.Views
             if (_isUpdatingTagsText) return;
 
             string text = TxtTags.Text ?? string.Empty;
-
             string currentWord;
             int lastComma = text.LastIndexOf(',');
             if (lastComma >= 0)
@@ -267,27 +272,27 @@ namespace MetroPinry.Views
             _photoTask.Show();
         }
 
-        private void OnPhotoTaskCompleted(object sender, PhotoResult e)
+        private async void OnPhotoTaskCompleted(object sender, PhotoResult e)
         {
             if (e.TaskResult == TaskResult.OK && e.ChosenPhoto != null)
             {
                 try
                 {
                     DisposeImageStream();
-
                     var memoryStream = new MemoryStream();
-                    e.ChosenPhoto.CopyTo(memoryStream);
-                    memoryStream.Position = 0;
 
+                    // Защита от зависания "Возобновление"
+                    await e.ChosenPhoto.CopyToAsync(memoryStream);
+                    memoryStream.Position = 0;
                     _selectedImageStream = memoryStream;
 
                     var bmp = new BitmapImage();
+                    bmp.DecodePixelWidth = 400; // Облегчаем UI
                     bmp.SetSource(_selectedImageStream);
 
                     ImagePreview.Source = bmp;
                     ImagePreview.Visibility = Visibility.Visible;
                     PlaceholderText.Visibility = Visibility.Collapsed;
-
                     TxtImageUrl.Text = string.Empty;
                     UpdateImageSourceControls();
                 }
@@ -301,11 +306,9 @@ namespace MetroPinry.Views
         private void OnClearImageClick(object sender, RoutedEventArgs e)
         {
             DisposeImageStream();
-
             ImagePreview.Source = null;
             ImagePreview.Visibility = Visibility.Collapsed;
             PlaceholderText.Visibility = Visibility.Visible;
-
             UpdateImageSourceControls();
         }
 
@@ -334,7 +337,6 @@ namespace MetroPinry.Views
         private void UpdateImageSourceControls()
         {
             if (PinToEdit != null) return;
-
             bool hasLocalFile = _selectedImageStream != null;
             TxtImageUrl.IsEnabled = !hasLocalFile;
             BtnClearImage.Visibility = hasLocalFile ? Visibility.Visible : Visibility.Collapsed;
@@ -349,12 +351,18 @@ namespace MetroPinry.Views
 
             if (PinToEdit == null && string.IsNullOrEmpty(url) && _selectedImageStream == null)
             {
-                MessageBox.Show("Укажите ссылку на изображение или выберите фото из галереи.", "Предупреждение", MessageBoxButton.OK);
+                MessageBox.Show(AppResources.SpecifyImagePrompt, AppResources.Warning, MessageBoxButton.OK);
                 return;
             }
 
             var selectedBoard = PreselectedBoard ?? (BoardPicker.SelectedItem as Board);
             int? targetBoardId = (selectedBoard != null && selectedBoard.Id > 0) ? selectedBoard.Id : (int?)null;
+
+            // Если выбрана приватная доска, пин тоже делаем приватным
+            if (selectedBoard != null && selectedBoard.Id > 0 && selectedBoard.IsPrivate)
+            {
+                isPrivate = true;
+            }
 
             var tagsList = new List<string>();
             if (!string.IsNullOrEmpty(rawTags))
@@ -382,31 +390,22 @@ namespace MetroPinry.Views
                     pinId: PinToEdit.Id,
                     desc: desc,
                     tags: tagsList,
-                    isPrivate: isPrivate,
-                    targetBoardId: targetBoardId);
+                    isPrivate: isPrivate);
 
                 if (success)
                 {
                     PinToEdit.Description = desc;
                     PinToEdit.Tags = tagsList;
                     PinToEdit.IsPrivate = isPrivate;
-
-                    if (targetBoardId.HasValue)
-                    {
-                        if (PinToEdit.Boards == null) PinToEdit.Boards = new List<object>();
-                        if (!PinToEdit.Boards.Contains(targetBoardId.Value))
-                        {
-                            PinToEdit.Boards.Add(targetBoardId.Value);
-                        }
-                    }
                 }
             }
             else
             {
                 if (!string.IsNullOrEmpty(url))
                 {
-                    success = await apiService.CreatePinFromUrlAsync(
+                    success = await apiService.CreatePinAsync(
                         url: url,
+                        imageId: null,
                         desc: desc,
                         boardsList: null,
                         tagsList: tagsList,
@@ -419,7 +418,6 @@ namespace MetroPinry.Views
                     {
                         _selectedImageStream.Position = 0;
                     }
-
                     success = await apiService.UploadPinImageAsync(
                         imageStream: _selectedImageStream,
                         desc: desc,
@@ -439,11 +437,18 @@ namespace MetroPinry.Views
                 PreselectedBoard = null;
                 App.ViewModel.IsDataLoaded = false;
                 await App.ViewModel.LoadDataAsync();
-                NavigationService.GoBack();
+
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (NavigationService.CanGoBack)
+                    {
+                        NavigationService.GoBack();
+                    }
+                });
             }
             else
             {
-                MessageBox.Show("Не удалось сохранить пин. Проверьте подключение к серверу и права доступа.", "Ошибка", MessageBoxButton.OK);
+                MessageBox.Show(AppResources.PinSaveError, AppResources.Error, MessageBoxButton.OK);
             }
         }
 
@@ -453,7 +458,7 @@ namespace MetroPinry.Views
             if (indicator != null)
             {
                 indicator.IsVisible = isLoading;
-                indicator.Text = isLoading ? "сохранение..." : "MetroPinry";
+                indicator.Text = isLoading ? AppResources.Saving : AppResources.AppTitle;
             }
 
             if (ApplicationBar != null)
@@ -471,6 +476,7 @@ namespace MetroPinry.Views
             BtnPickImage.IsEnabled = !isLoading && PinToEdit == null;
             BtnClearImage.IsEnabled = !isLoading;
             ChkIsPrivate.IsEnabled = !isLoading;
+            BtnCreateBoard.IsEnabled = !isLoading;
         }
 
         private void OnCancelAppBarClick(object sender, EventArgs e)
@@ -478,7 +484,10 @@ namespace MetroPinry.Views
             DisposeImageStream();
             PinToEdit = null;
             PreselectedBoard = null;
-            NavigationService.GoBack();
+            if (NavigationService.CanGoBack)
+            {
+                NavigationService.GoBack();
+            }
         }
 
         private void OnCreateNewBoardClick(object sender, RoutedEventArgs e)
